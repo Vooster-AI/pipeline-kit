@@ -12,6 +12,10 @@
 //!
 //! - [`config`]: Configuration loading and management
 //! - [`agents`]: Agent trait and adapter implementations
+//! - [`engine`]: Pipeline execution engine
+//! - [`state`]: Process state management
 
 pub mod agents;
 pub mod config;
+pub mod engine;
+pub mod state;

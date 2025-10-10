@@ -35,10 +35,10 @@
 ## Phase 3: 파이프라인 엔진 및 기본 CLI 기능 구현
 
 ### Ticket 3.1: 파이프라인 실행 엔진 및 상태 관리 구현 (`pk-core` 크레이트)
-- [ ] RED: 순차 파이프라인 테스트 작성 및 이벤트 검증
-- [ ] GREEN: `PipelineEngine` 및 `Process` 상태 머신 구현
-- [ ] REFACTOR: `Arc<Mutex<>>` 적용 및 `StateManager` 도입
-- [ ] **Ticket 3.1 완료**
+- [x] RED: 순차 파이프라인 테스트 작성 및 이벤트 검증
+- [x] GREEN: `PipelineEngine` 및 `Process` 상태 머신 구현
+- [x] REFACTOR: `Arc<Mutex<>>` 적용 및 `StateManager` 도입
+- [x] **Ticket 3.1 완료**
 
 ---
 
@@ -84,8 +84,8 @@
 
 - **Phase 1**: 2/2 티켓 완료 ✅
 - **Phase 2**: 2/2 티켓 완료 ✅
-- **Phase 3**: 0/1 티켓 완료
+- **Phase 3**: 1/1 티켓 완료 ✅
 - **Phase 4**: 0/4 티켓 완료
 - **Phase 5**: 0/1 티켓 완료
 
-**총 진행률**: 4/10 티켓 완료 (40%)
+**총 진행률**: 5/10 티켓 완료 (50%)
