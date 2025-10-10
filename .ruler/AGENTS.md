@@ -49,6 +49,8 @@ This document provides development guidelines for `pipeline-kit`, an AI agent pi
   - Any data structure shared between `pk-core` and `pk-tui` (or intended for external clients) MUST be defined in `pk-protocol`.
   - All such structs MUST derive `Serialize`, `Deserialize`, `Debug`, `Clone`, and `ts_rs::TS`.
 
+- **Git Commits:** Commit after each meaningful task. Write concise English commit messages.
+
 ### **Guidelines**
 
 - **Adding a New Command (e.g., `/stop <process-id>`)**
