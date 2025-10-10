@@ -25,10 +25,10 @@
 - [x] **Ticket 2.1 완료**
 
 ### Ticket 2.2: 에이전트 어댑터 패턴 및 관리자 구현 (`pk-core` 크레이트)
-- [ ] RED: `AgentManager` 테스트 작성 및 컴파일 실패 확인
-- [ ] GREEN: `Agent` 트레이트, `MockAgent`, `AgentManager` 구현
-- [ ] REFACTOR: 트레이트 시그니처 명확화 및 에러 처리 개선
-- [ ] **Ticket 2.2 완료**
+- [x] RED: `AgentManager` 테스트 작성 및 컴파일 실패 확인
+- [x] GREEN: `Agent` 트레이트, `MockAgent`, `AgentManager` 구현
+- [x] REFACTOR: 트레이트 시그니처 명확화 및 에러 처리 개선
+- [x] **Ticket 2.2 완료**
 
 ---
 
@@ -83,9 +83,9 @@
 ## 전체 진행 상황
 
 - **Phase 1**: 2/2 티켓 완료 ✅
-- **Phase 2**: 1/2 티켓 완료
+- **Phase 2**: 2/2 티켓 완료 ✅
 - **Phase 3**: 0/1 티켓 완료
 - **Phase 4**: 0/4 티켓 완료
 - **Phase 5**: 0/1 티켓 완료
 
-**총 진행률**: 3/10 티켓 완료 (30%)
+**총 진행률**: 4/10 티켓 완료 (40%)
