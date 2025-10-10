@@ -136,3 +136,84 @@ mod tests {
     }
 }
 ```
+
+### **Verification Checklist**
+
+AI agents MUST run the following verification steps after completing each task to ensure the implementation is correct. These checks should be executed in order, and all must pass before marking a task as complete.
+
+#### **1. Code Formatting**
+```bash
+cd pipeline-kit-rs && cargo fmt --all --check
+```
+- Ensures all Rust code follows the project's formatting standards.
+- If this fails, run `cargo fmt --all` to auto-fix formatting issues.
+
+#### **2. Static Analysis (Linting)**
+```bash
+cd pipeline-kit-rs && cargo clippy --all-targets --all-features -- -D warnings
+```
+- Catches common mistakes, anti-patterns, and potential bugs.
+- All clippy warnings MUST be addressed. Do not suppress warnings without a valid reason documented in the code.
+
+#### **3. Build Verification**
+```bash
+cd pipeline-kit-rs && cargo build --all-targets --all-features
+```
+- Ensures the entire workspace compiles successfully.
+- This includes all crates, examples, tests, and benchmarks.
+
+#### **4. Test Execution**
+```bash
+cd pipeline-kit-rs && cargo test --all-targets --all-features
+```
+- Runs all unit tests, integration tests, and doc tests.
+- ALL tests must pass. Do not mark a task complete if tests are failing.
+
+#### **5. TypeScript Type Generation**
+```bash
+cd pipeline-kit-rs && cargo test --package pk-protocol --lib -- --nocapture
+```
+- Verifies that TypeScript bindings are correctly generated from Rust structs.
+- Check that the generated types in `pipeline-kit-cli/src/types/` are up-to-date.
+
+#### **6. TypeScript Type Check (if applicable)**
+If you modified TypeScript code in `pipeline-kit-cli/`:
+```bash
+cd pipeline-kit-cli && pnpm type-check
+```
+- Ensures TypeScript code has no type errors.
+
+#### **7. Documentation Check**
+```bash
+cd pipeline-kit-rs && cargo doc --no-deps --all-features
+```
+- Verifies that all public APIs are properly documented.
+- Checks for broken doc links and invalid markdown in doc comments.
+
+#### **Verification Workflow**
+
+When completing a task, AI agents should:
+
+1. **Run all verification steps** in the order listed above.
+2. **Fix any issues** that arise from these checks.
+3. **Re-run the failed check** after fixing to confirm the issue is resolved.
+4. **Only mark the task as complete** when ALL verification steps pass.
+5. **Report the verification results** to the user, showing which checks passed.
+
+**Example Verification Report:**
+```
+✅ Code formatting check passed
+✅ Clippy analysis passed (0 warnings)
+✅ Build successful
+✅ All tests passed (15 tests)
+✅ TypeScript types generated successfully
+✅ Documentation built without errors
+
+All verification checks passed. Task is complete.
+```
+
+**If any check fails:**
+- Do NOT mark the task as complete.
+- Fix the issue immediately.
+- Re-run the verification checklist.
+- If unable to fix, create a new task describing the blocker and ask for help.
