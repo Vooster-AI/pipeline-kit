@@ -86,6 +86,7 @@ fn test_process_serialization() {
         started_at: chrono::Utc::now(),
         completed_at: None,
         logs: vec!["Log entry 1".to_string(), "Log entry 2".to_string()],
+        resume_notifier: std::sync::Arc::new(tokio::sync::Notify::new()),
     };
 
     let json = serde_json::to_string(&process).expect("Failed to serialize Process");

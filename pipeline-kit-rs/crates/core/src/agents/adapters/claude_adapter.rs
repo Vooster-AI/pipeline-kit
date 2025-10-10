@@ -155,34 +155,36 @@ impl Agent for ClaudeAdapter {
         let session_mapping = self.session_mapping.clone();
         let project_id_clone = project_id.clone();
 
-        let events_stream = lines_stream.filter_map(move |line_result| {
-            let session_mapping = session_mapping.clone();
-            let project_id = project_id_clone.clone();
+        let events_stream = lines_stream
+            .then(move |line_result| {
+                let session_mapping = session_mapping.clone();
+                let project_id = project_id_clone.clone();
 
-            async move {
-                match line_result {
-                    Ok(line) => {
-                        if line.trim().is_empty() {
-                            return None;
-                        }
+                async move {
+                    match line_result {
+                        Ok(line) => {
+                            if line.trim().is_empty() {
+                                return None;
+                            }
 
-                        // Parse JSON
-                        match serde_json::from_str::<ClaudeMessage>(&line) {
-                            Ok(msg) => {
-                                convert_claude_message(msg, session_mapping, project_id).await
-                            }
-                            Err(e) => {
-                                Some(Err(AgentError::StreamParseError(format!(
-                                    "Failed to parse JSON: {} (line: {})",
-                                    e, line
-                                ))))
+                            // Parse JSON
+                            match serde_json::from_str::<ClaudeMessage>(&line) {
+                                Ok(msg) => {
+                                    convert_claude_message(msg, session_mapping, project_id).await
+                                }
+                                Err(e) => {
+                                    Some(Err(AgentError::StreamParseError(format!(
+                                        "Failed to parse JSON: {} (line: {})",
+                                        e, line
+                                    ))))
+                                }
                             }
                         }
+                        Err(e) => Some(Err(AgentError::StreamParseError(e.to_string()))),
                     }
-                    Err(e) => Some(Err(AgentError::StreamParseError(e.to_string()))),
                 }
-            }
-        });
+            })
+            .filter_map(|opt| opt);
 
         Ok(Box::pin(events_stream))
     }

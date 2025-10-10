@@ -15,6 +15,12 @@ authors = ["Pipeline Kit Contributors"]
 license = "MIT"
 repository = "https://github.com/yourusername/pipeline-kit"
 
+[workspace.dependencies]
+# Test dependencies shared across workspace
+assert_cmd = "2.0"
+predicates = "3.0"
+insta = "1.40"
+
 [workspace.lints.clippy]
 # Code quality lints (deny level)
 expect_used = "deny"

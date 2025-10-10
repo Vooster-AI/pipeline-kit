@@ -26,9 +26,11 @@ which = "6.0"
 tempfile = "3.10"
 
 [dev-dependencies]
+async-stream = "0.3.6"
 tempfile = "3.10"
 tokio = { version = "1.40", features = ["full"] }
 tokio-test = "0.4"
 
 [features]
 integration-tests = []
+e2e-cli-tests = []  # Enable real CLI integration tests (requires actual CLI tools installed)

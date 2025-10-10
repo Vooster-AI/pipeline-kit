@@ -2,7 +2,7 @@
 
 use crate::agents::base::Agent;
 use crate::agents::agent_type::AgentType;
-use crate::agents::adapters::{/* ClaudeAdapter, CursorAdapter, */ GeminiAdapter, MockAgent};
+use crate::agents::adapters::{ClaudeAdapter, CodexAdapter, CursorAdapter, GeminiAdapter, MockAgent};
 use anyhow::Result;
 use pk_protocol::agent_models;
 use std::sync::Arc;
@@ -55,14 +55,20 @@ impl AgentFactory {
 
         match agent_type {
             AgentType::Claude => {
-                // TODO: Temporarily using MockAgent
-                eprintln!("Warning: ClaudeAdapter has compilation errors, using MockAgent");
-                Ok(Arc::new(MockAgent::success()))
+                let adapter = ClaudeAdapter::new(
+                    config.name.clone(),
+                    config.model.clone(),
+                    config.system_prompt.clone(),
+                )?;
+                Ok(Arc::new(adapter))
             }
             AgentType::Cursor => {
-                // TODO: Temporarily using MockAgent
-                eprintln!("Warning: CursorAdapter has compilation errors, using MockAgent");
-                Ok(Arc::new(MockAgent::success()))
+                let adapter = CursorAdapter::new(
+                    config.name.clone(),
+                    config.model.clone(),
+                    config.system_prompt.clone(),
+                )?;
+                Ok(Arc::new(adapter))
             }
             AgentType::Gemini => {
                 let adapter = GeminiAdapter::new(
@@ -73,12 +79,12 @@ impl AgentFactory {
                 Ok(Arc::new(adapter))
             }
             AgentType::Codex => {
-                // TODO: Phase 2 - Implement CodexAdapter
-                eprintln!(
-                    "Warning: CodexAdapter not yet implemented for '{}', using MockAgent",
-                    config.name
-                );
-                Ok(Arc::new(MockAgent::success()))
+                let adapter = CodexAdapter::new(
+                    config.name.clone(),
+                    config.model.clone(),
+                    config.system_prompt.clone(),
+                )?;
+                Ok(Arc::new(adapter))
             }
             AgentType::Qwen => {
                 // TODO: Phase 2 - Implement QwenAdapter
@@ -116,8 +122,9 @@ mod tests {
         assert!(agent.is_ok());
 
         let agent = agent.unwrap();
-        // For now, this returns MockAgent
-        assert!(agent.check_availability().await);
+        // ClaudeAdapter check_availability returns false unless `claude` CLI is installed
+        // This is expected behavior in test environment
+        let _ = agent.check_availability().await;
     }
 
     #[tokio::test]
@@ -127,7 +134,9 @@ mod tests {
         assert!(agent.is_ok());
 
         let agent = agent.unwrap();
-        assert!(agent.check_availability().await);
+        // CursorAdapter check_availability returns false unless `cursor-agent` CLI is installed
+        // This is expected behavior in test environment
+        let _ = agent.check_availability().await;
     }
 
     #[tokio::test]
@@ -137,7 +146,21 @@ mod tests {
         assert!(agent.is_ok());
 
         let agent = agent.unwrap();
-        assert!(agent.check_availability().await);
+        // GeminiAdapter check_availability returns false unless `gemini-cli` CLI and GEMINI_API_KEY are set
+        // This is expected behavior in test environment
+        let _ = agent.check_availability().await;
+    }
+
+    #[tokio::test]
+    async fn test_factory_create_codex() {
+        let config = create_test_config("codex-agent", "codex-model");
+        let agent = AgentFactory::create(&config);
+        assert!(agent.is_ok());
+
+        let agent = agent.unwrap();
+        // CodexAdapter check_availability returns false unless `codex` CLI and OPENAI_API_KEY are set
+        // This is expected behavior in test environment
+        let _ = agent.check_availability().await;
     }
 
     #[tokio::test]

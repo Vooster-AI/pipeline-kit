@@ -35,6 +35,7 @@ pub fn render_dashboard(
                 pk_protocol::ProcessStatus::Pending => Style::default().fg(Color::Yellow),
                 pk_protocol::ProcessStatus::Paused => Style::default().fg(Color::Magenta),
                 pk_protocol::ProcessStatus::HumanReview => Style::default().fg(Color::LightYellow),
+                pk_protocol::ProcessStatus::Killed => Style::default().fg(Color::DarkGray),
             };
 
             Row::new(vec![
@@ -146,6 +147,7 @@ mod tests {
             logs: vec![],
             started_at: Utc::now(),
             completed_at: None,
+            resume_notifier: Arc::new(Notify::new()),
         };
 
         let process2 = Process {
@@ -156,6 +158,7 @@ mod tests {
             logs: vec![],
             started_at: Utc::now(),
             completed_at: Some(Utc::now()),
+            resume_notifier: Arc::new(Notify::new()),
         };
 
         let processes = vec![process1.clone(), process2.clone()];
@@ -201,6 +204,7 @@ mod tests {
             logs: vec![],
             started_at: Utc::now(),
             completed_at: None,
+            resume_notifier: Arc::new(Notify::new()),
         };
 
         let process2 = Process {
@@ -211,6 +215,7 @@ mod tests {
             logs: vec![],
             started_at: Utc::now(),
             completed_at: None,
+            resume_notifier: Arc::new(Notify::new()),
         };
 
         let processes = vec![process1, process2];

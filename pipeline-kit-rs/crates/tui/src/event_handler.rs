@@ -7,7 +7,8 @@
 
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use pk_protocol::{Event, Op, Process, ProcessStatus};
-use tokio::sync::mpsc::UnboundedSender;
+use std::sync::Arc;
+use tokio::sync::{mpsc::UnboundedSender, Notify};
 
 /// Handle an event received from the core.
 pub fn handle_core_event(processes: &mut Vec<Process>, event: Event) {
@@ -24,6 +25,7 @@ pub fn handle_core_event(processes: &mut Vec<Process>, event: Event) {
                 logs: Vec::new(),
                 started_at: chrono::Utc::now(),
                 completed_at: None,
+                resume_notifier: Arc::new(Notify::new()),
             };
             processes.push(process);
         }
@@ -56,6 +58,19 @@ pub fn handle_core_event(processes: &mut Vec<Process>, event: Event) {
                 process.status = ProcessStatus::Failed;
                 process.logs.push(format!("ERROR: {}", error));
                 process.completed_at = Some(chrono::Utc::now());
+            }
+        }
+        Event::ProcessKilled { process_id } => {
+            if let Some(process) = processes.iter_mut().find(|p| p.id == process_id) {
+                process.status = ProcessStatus::Killed;
+                process.logs.push("Process killed by user".to_string());
+                process.completed_at = Some(chrono::Utc::now());
+            }
+        }
+        Event::ProcessResumed { process_id } => {
+            if let Some(process) = processes.iter_mut().find(|p| p.id == process_id) {
+                process.status = ProcessStatus::Running;
+                process.logs.push("Process resumed".to_string());
             }
         }
     }
@@ -213,6 +228,7 @@ mod tests {
                 logs: Vec::new(),
                 started_at: chrono::Utc::now(),
                 completed_at: None,
+                resume_notifier: Arc::new(Notify::new()),
             },
             Process {
                 id: Uuid::new_v4(),
@@ -222,6 +238,7 @@ mod tests {
                 logs: Vec::new(),
                 started_at: chrono::Utc::now(),
                 completed_at: None,
+                resume_notifier: Arc::new(Notify::new()),
             },
             Process {
                 id: Uuid::new_v4(),
@@ -231,6 +248,7 @@ mod tests {
                 logs: Vec::new(),
                 started_at: chrono::Utc::now(),
                 completed_at: None,
+                resume_notifier: Arc::new(Notify::new()),
             },
         ];
 

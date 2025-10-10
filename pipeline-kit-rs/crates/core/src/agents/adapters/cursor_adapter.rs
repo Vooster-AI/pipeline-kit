@@ -133,33 +133,35 @@ impl Agent for CursorAdapter {
         let session_mapping = self.session_mapping.clone();
         let project_id_clone = project_id.clone();
 
-        let events_stream = lines_stream.filter_map(move |line_result| {
-            let session_mapping = session_mapping.clone();
-            let project_id = project_id_clone.clone();
+        let events_stream = lines_stream
+            .then(move |line_result| {
+                let session_mapping = session_mapping.clone();
+                let project_id = project_id_clone.clone();
 
-            async move {
-                match line_result {
-                    Ok(line) => {
-                        if line.trim().is_empty() {
-                            return None;
-                        }
+                async move {
+                    match line_result {
+                        Ok(line) => {
+                            if line.trim().is_empty() {
+                                return None;
+                            }
 
-                        match serde_json::from_str::<CursorEvent>(&line) {
-                            Ok(event) => {
-                                convert_cursor_event(event, session_mapping, project_id).await
-                            }
-                            Err(e) => {
-                                Some(Err(AgentError::StreamParseError(format!(
-                                    "Failed to parse NDJSON: {} (line: {})",
-                                    e, line
-                                ))))
+                            match serde_json::from_str::<CursorEvent>(&line) {
+                                Ok(event) => {
+                                    convert_cursor_event(event, session_mapping, project_id).await
+                                }
+                                Err(e) => {
+                                    Some(Err(AgentError::StreamParseError(format!(
+                                        "Failed to parse NDJSON: {} (line: {})",
+                                        e, line
+                                    ))))
+                                }
                             }
                         }
+                        Err(e) => Some(Err(AgentError::StreamParseError(e.to_string()))),
                     }
-                    Err(e) => Some(Err(AgentError::StreamParseError(e.to_string()))),
                 }
-            }
-        });
+            })
+            .filter_map(|opt| opt);
 
         Ok(Box::pin(events_stream))
     }
