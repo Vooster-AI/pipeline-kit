@@ -85,7 +85,7 @@ Base abstractions and shared utilities for CLI providers.
 This module defines a precise, minimal adapter contract (BaseCLI) and common
 helpers so that adding a new provider remains consistent and easy.
 """
-from __future inport annotations
+from __future import annotations
 
 import os
 import uuid
@@ -741,7 +741,7 @@ class BaseCLI(ABC):
 
 Moved from unified_manager.py to a dedicated adapter module.
 """
-from __future inport annotations
+from __future import annotations
 
 import asyncio
 import json
@@ -1323,7 +1323,7 @@ __all__ = ["CursorAgentCLI"]
 
 Moved from unified_manager.py to a dedicated module.
 """
-from __future inport annotations
+from __future import annotations
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional
