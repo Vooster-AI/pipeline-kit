@@ -6,3 +6,27 @@ authors = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
 description = "Terminal UI for pipeline-kit"
+
+[dependencies]
+pk-protocol = { path = "../protocol" }
+pk-core = { path = "../core" }
+
+# TUI
+ratatui = "0.29"
+crossterm = { version = "0.28", features = ["event-stream"] }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1"
+
+# Error handling
+anyhow = "1"
+thiserror = "1"
+
+# Utilities
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+async-stream = "0.3"
+
+[dev-dependencies]
+tempfile = "3"

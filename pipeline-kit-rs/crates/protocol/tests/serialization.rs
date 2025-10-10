@@ -82,7 +82,9 @@ fn test_process_serialization() {
         id: process_id,
         pipeline_name: "test-pipeline".to_string(),
         status: ProcessStatus::Pending,
-        current_step: 0,
+        current_step_index: 0,
+        started_at: chrono::Utc::now(),
+        completed_at: None,
         logs: vec!["Log entry 1".to_string(), "Log entry 2".to_string()],
     };
 
@@ -92,7 +94,7 @@ fn test_process_serialization() {
     assert_eq!(deserialized.id, process.id);
     assert_eq!(deserialized.pipeline_name, process.pipeline_name);
     assert_eq!(deserialized.status, process.status);
-    assert_eq!(deserialized.current_step, process.current_step);
+    assert_eq!(deserialized.current_step_index, process.current_step_index);
     assert_eq!(deserialized.logs.len(), 2);
 }
 

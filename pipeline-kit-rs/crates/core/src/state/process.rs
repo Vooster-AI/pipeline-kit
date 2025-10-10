@@ -22,7 +22,9 @@ pub fn create_process(pipeline_name: String) -> Process {
         id: Uuid::new_v4(),
         pipeline_name,
         status: ProcessStatus::Pending,
-        current_step: 0,
+        current_step_index: 0,
+        started_at: chrono::Utc::now(),
+        completed_at: None,
         logs: Vec::new(),
     }
 }
@@ -39,7 +41,7 @@ pub async fn start_process(process: &mut Process, events_tx: &Sender<Event>) {
         .send(Event::ProcessStatusUpdate {
             process_id: process.id,
             status: process.status,
-            step_index: process.current_step,
+            step_index: process.current_step_index,
         })
         .await;
 }
@@ -58,7 +60,7 @@ pub async fn pause_for_human_review(process: &mut Process, events_tx: &Sender<Ev
         .send(Event::ProcessStatusUpdate {
             process_id: process.id,
             status: process.status,
-            step_index: process.current_step,
+            step_index: process.current_step_index,
         })
         .await;
 }
@@ -77,7 +79,7 @@ pub async fn pause_process(process: &mut Process, events_tx: &Sender<Event>) {
         .send(Event::ProcessStatusUpdate {
             process_id: process.id,
             status: process.status,
-            step_index: process.current_step,
+            step_index: process.current_step_index,
         })
         .await;
 }
@@ -94,7 +96,7 @@ pub async fn resume_process(process: &mut Process, events_tx: &Sender<Event>) {
         .send(Event::ProcessStatusUpdate {
             process_id: process.id,
             status: process.status,
-            step_index: process.current_step,
+            step_index: process.current_step_index,
         })
         .await;
 }
@@ -111,7 +113,7 @@ pub async fn complete_process(process: &mut Process, events_tx: &Sender<Event>) 
         .send(Event::ProcessStatusUpdate {
             process_id: process.id,
             status: process.status,
-            step_index: process.current_step,
+            step_index: process.current_step_index,
         })
         .await;
     let _ = events_tx
@@ -134,7 +136,7 @@ pub async fn fail_process(process: &mut Process, events_tx: &Sender<Event>, erro
         .send(Event::ProcessStatusUpdate {
             process_id: process.id,
             status: process.status,
-            step_index: process.current_step,
+            step_index: process.current_step_index,
         })
         .await;
     let _ = events_tx
@@ -168,7 +170,7 @@ pub async fn log_to_process(process: &mut Process, events_tx: &Sender<Event>, me
 ///
 /// * `process` - The process to advance
 pub fn advance_step(process: &mut Process) {
-    process.current_step += 1;
+    process.current_step_index += 1;
 }
 
 #[cfg(test)]
@@ -181,7 +183,7 @@ mod tests {
         let process = create_process("test-pipeline".to_string());
         assert_eq!(process.pipeline_name, "test-pipeline");
         assert_eq!(process.status, ProcessStatus::Pending);
-        assert_eq!(process.current_step, 0);
+        assert_eq!(process.current_step_index, 0);
         assert!(process.logs.is_empty());
     }
 
@@ -290,13 +292,13 @@ mod tests {
     #[tokio::test]
     async fn test_advance_step() {
         let mut process = create_process("test-pipeline".to_string());
-        assert_eq!(process.current_step, 0);
+        assert_eq!(process.current_step_index, 0);
 
         advance_step(&mut process);
-        assert_eq!(process.current_step, 1);
+        assert_eq!(process.current_step_index, 1);
 
         advance_step(&mut process);
-        assert_eq!(process.current_step, 2);
+        assert_eq!(process.current_step_index, 2);
     }
 
     #[tokio::test]

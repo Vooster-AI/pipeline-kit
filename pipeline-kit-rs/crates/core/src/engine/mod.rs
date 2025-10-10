@@ -288,7 +288,7 @@ mod tests {
         let process = result.unwrap();
         // Should pause at HUMAN_REVIEW, not complete
         assert_eq!(process.status, ProcessStatus::HumanReview);
-        assert_eq!(process.current_step, 1); // Stopped at step 1 (HUMAN_REVIEW)
+        assert_eq!(process.current_step_index, 1); // Stopped at step 1 (HUMAN_REVIEW)
     }
 
     #[tokio::test]

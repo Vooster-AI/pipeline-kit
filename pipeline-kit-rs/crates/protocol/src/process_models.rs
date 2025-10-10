@@ -3,6 +3,7 @@
 //! This module defines the structures for tracking the state of running
 //! pipeline executions.
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use uuid::Uuid;
@@ -65,10 +66,18 @@ pub struct Process {
     ///
     /// Points to the step currently being executed or the next step
     /// to be executed if paused.
-    pub current_step: usize,
+    pub current_step_index: usize,
 
     /// Accumulated log messages from this process execution.
     ///
     /// Contains output from agents, status updates, and error messages.
     pub logs: Vec<String>,
+
+    /// Timestamp when the process was started.
+    #[ts(type = "string")]
+    pub started_at: DateTime<Utc>,
+
+    /// Timestamp when the process was completed (if finished).
+    #[ts(optional, type = "string")]
+    pub completed_at: Option<DateTime<Utc>>,
 }
