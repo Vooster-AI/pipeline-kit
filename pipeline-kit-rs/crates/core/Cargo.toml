@@ -1,0 +1,4 @@
+[package]
+name = "pk-core"
+version = { workspace = true }
+edition = { workspace = true }

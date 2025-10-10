@@ -1,0 +1,4 @@
+[package]
+name = "pk-tui"
+version = { workspace = true }
+edition = { workspace = true }

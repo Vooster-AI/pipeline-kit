@@ -1,0 +1,8 @@
+[package]
+name = "pk-cli"
+version = { workspace = true }
+edition = { workspace = true }
+
+[[bin]]
+name = "pipeline"
+path = "src/main.rs"

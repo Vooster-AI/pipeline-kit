@@ -1,0 +1,4 @@
+[package]
+name = "pk-protocol"
+version = { workspace = true }
+edition = { workspace = true }

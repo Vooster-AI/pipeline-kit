@@ -1,0 +1,17 @@
+[workspace]
+members = [
+    "crates/cli",
+    "crates/core",
+    "crates/protocol",
+    "crates/protocol-ts",
+    "crates/tui",
+]
+resolver = "2" # Use the modern resolver
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021" # Or "2024" if your toolchain supports it
+
+[workspace.lints.clippy]
+# Reference codex-rs/clippy.toml for useful lints
+unwrap_used = "deny"

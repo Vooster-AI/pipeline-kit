@@ -1,0 +1,7 @@
+{
+  "name": "pipeline-kit-monorepo",
+  "private": true,
+  "scripts": {
+    "check-rs": "cd pipeline-kit-rs && cargo check --workspace"
+  }
+}

@@ -1,3 +1,10 @@
+# Rust
+pipeline-kit-rs/target/
+pipeline-kit-rs/Cargo.lock
+
+# Node
+node_modules/
+pnpm-lock.yaml
 
 # START Ruler Generated Files
 /.codex/config.toml
