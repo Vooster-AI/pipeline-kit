@@ -6,14 +6,17 @@
 
 use crate::agents::manager::AgentManager;
 use crate::engine::PipelineEngine;
-use crate::state::process::{kill_process_state, pause_process, resume_process};
+use crate::state::process::kill_process_state;
+use crate::state::process::pause_process;
+use crate::state::process::resume_process;
 use anyhow::Result;
 use pk_protocol::ipc::Event;
 use pk_protocol::pipeline_models::Pipeline;
 use pk_protocol::process_models::Process;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::mpsc;
+use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use uuid::Uuid;
 
@@ -328,7 +331,8 @@ impl StateManager {
 mod tests {
     use super::*;
     use pk_protocol::agent_models::Agent as AgentConfig;
-    use pk_protocol::pipeline_models::{MasterAgentConfig, ProcessStep};
+    use pk_protocol::pipeline_models::MasterAgentConfig;
+    use pk_protocol::pipeline_models::ProcessStep;
     use pk_protocol::process_models::ProcessStatus;
     use std::collections::HashMap as StdHashMap;
 
@@ -516,14 +520,11 @@ mod tests {
             events.push(event);
         }
 
-        let has_resumed_event = events.iter().any(|e| {
-            matches!(e, Event::ProcessResumed { process_id: pid } if *pid == process_id)
-        });
+        let has_resumed_event = events
+            .iter()
+            .any(|e| matches!(e, Event::ProcessResumed { process_id: pid } if *pid == process_id));
 
-        assert!(
-            has_resumed_event,
-            "Should emit ProcessResumed event"
-        );
+        assert!(has_resumed_event, "Should emit ProcessResumed event");
     }
 
     /// RED: Acceptance test for kill_process with task cancellation

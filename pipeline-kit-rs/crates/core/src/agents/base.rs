@@ -121,9 +121,12 @@ mod tests {
         async fn execute(
             &self,
             context: &ExecutionContext,
-        ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError> {
+        ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError>
+        {
             if !self.available {
-                return Err(AgentError::NotAvailable("Test agent not available".to_string()));
+                return Err(AgentError::NotAvailable(
+                    "Test agent not available".to_string(),
+                ));
             }
 
             let instruction = context.instruction.clone();

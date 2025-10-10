@@ -3,7 +3,8 @@
 //! This module defines the structure of pipeline definition files that
 //! orchestrate multi-agent workflows.
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use std::collections::HashMap;
 use ts_rs::TS;
 

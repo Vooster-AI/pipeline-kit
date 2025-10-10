@@ -9,7 +9,8 @@
 //! - Gemini CLI: `gemini-cli` must be installed and `GEMINI_API_KEY` set
 //! - Codex CLI: `codex` must be installed and `OPENAI_API_KEY` set
 
-use pk_core::agents::{AgentFactory, ExecutionContext};
+use pk_core::agents::AgentFactory;
+use pk_core::agents::ExecutionContext;
 use pk_protocol::agent_models;
 use tokio_stream::StreamExt;
 
@@ -101,7 +102,8 @@ mod real_cli_tests {
         let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let project_path = temp_dir.path().to_str().unwrap();
 
-        let context = create_test_context("What is 2+2? Answer with just the number.", project_path);
+        let context =
+            create_test_context("What is 2+2? Answer with just the number.", project_path);
 
         let stream = agent
             .execute(&context)
@@ -141,7 +143,10 @@ mod real_cli_tests {
         let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let project_path = temp_dir.path().to_str().unwrap();
 
-        let context = create_test_context("What is the capital of France? One word answer.", project_path);
+        let context = create_test_context(
+            "What is the capital of France? One word answer.",
+            project_path,
+        );
 
         let stream = agent
             .execute(&context)
@@ -163,11 +168,8 @@ mod real_cli_tests {
     #[tokio::test]
     #[ignore]
     async fn test_codex_adapter_real_execution() {
-        let config = create_agent_config(
-            "test-codex",
-            "codex",
-            "You are a helpful coding assistant.",
-        );
+        let config =
+            create_agent_config("test-codex", "codex", "You are a helpful coding assistant.");
 
         let agent = AgentFactory::create(&config).expect("Failed to create Codex agent");
 
@@ -198,10 +200,7 @@ mod real_cli_tests {
         );
 
         // Verify rollout directory was created
-        let rollout_dir = temp_dir
-            .path()
-            .join(".pipeline-kit")
-            .join("codex_rollouts");
+        let rollout_dir = temp_dir.path().join(".pipeline-kit").join("codex_rollouts");
         assert!(
             rollout_dir.exists(),
             "Rollout directory should be created by CodexAdapter"
@@ -243,7 +242,10 @@ mod real_cli_tests {
         let stream2 = agent.execute(&context2).await.expect("Failed to execute");
         let events2: Vec<_> = stream2.collect().await;
 
-        assert!(!events2.is_empty(), "Should receive events from resumed session");
+        assert!(
+            !events2.is_empty(),
+            "Should receive events from resumed session"
+        );
 
         println!(
             "Session persistence test passed with {} events",

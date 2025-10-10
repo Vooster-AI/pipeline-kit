@@ -6,7 +6,10 @@
 //! - Providing fallback logic when agents are unavailable
 //! - Managing the lifecycle of agent instances
 
-use crate::agents::base::{Agent, AgentError, AgentEvent, ExecutionContext};
+use crate::agents::base::Agent;
+use crate::agents::base::AgentError;
+use crate::agents::base::AgentEvent;
+use crate::agents::base::ExecutionContext;
 use crate::agents::factory::AgentFactory;
 use pk_protocol::agent_models;
 use std::collections::HashMap;
@@ -110,7 +113,8 @@ impl AgentManager {
         &self,
         agent_name: &str,
         context: &ExecutionContext,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError> {
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError>
+    {
         // Try to get the requested agent
         if let Some(agent) = self.get_agent(agent_name) {
             if agent.check_availability().await {
@@ -169,10 +173,7 @@ mod tests {
 
     #[test]
     fn test_agent_manager_new() {
-        let configs = vec![
-            create_test_config("agent1"),
-            create_test_config("agent2"),
-        ];
+        let configs = vec![create_test_config("agent1"), create_test_config("agent2")];
 
         let manager = AgentManager::new(configs);
         assert!(manager.has_agent("agent1"));
@@ -258,10 +259,7 @@ mod tests {
 
     #[test]
     fn test_agent_manager_fallback_configuration() {
-        let configs = vec![
-            create_test_config("agent1"),
-            create_test_config("agent2"),
-        ];
+        let configs = vec![create_test_config("agent1"), create_test_config("agent2")];
 
         let manager = AgentManager::new(configs).with_fallback("agent2".to_string());
         assert_eq!(manager.fallback_agent_name, Some("agent2".to_string()));

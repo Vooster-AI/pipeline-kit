@@ -2,8 +2,8 @@
 //!
 //! This executable provides a standalone TUI for pipeline-kit.
 
-use pk_tui::run_app;
 use anyhow::Result;
+use pk_tui::run_app;
 
 #[tokio::main]
 async fn main() -> Result<()> {

@@ -3,12 +3,18 @@
 //! This adapter communicates with the Gemini CLI using JSON-RPC protocol
 //! over stdin/stdout pipes.
 
-use crate::agents::base::{Agent, AgentError, AgentEvent, ExecutionContext};
+use crate::agents::base::Agent;
+use crate::agents::base::AgentError;
+use crate::agents::base::AgentEvent;
+use crate::agents::base::ExecutionContext;
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use std::pin::Pin;
 use std::process::Stdio;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::AsyncBufReadExt;
+use tokio::io::AsyncWriteExt;
+use tokio::io::BufReader;
 use tokio::process::Command;
 use tokio_stream::Stream;
 use tokio_stream::StreamExt;
@@ -17,6 +23,7 @@ use tokio_stream::StreamExt;
 ///
 /// This adapter spawns the `gemini-cli` process and communicates via JSON-RPC.
 pub struct GeminiAdapter {
+    #[allow(dead_code)]
     name: String,
     model: String,
     system_prompt: String,
@@ -61,7 +68,8 @@ impl Agent for GeminiAdapter {
     async fn execute(
         &self,
         context: &ExecutionContext,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError> {
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError>
+    {
         // 1. Spawn gemini-cli process with stdin/stdout pipes
         let mut child = Command::new("gemini-cli")
             .stdin(Stdio::piped())
@@ -69,7 +77,9 @@ impl Agent for GeminiAdapter {
             .stderr(Stdio::piped())
             .current_dir(&context.project_path)
             .spawn()
-            .map_err(|e| AgentError::ExecutionError(format!("Failed to spawn gemini-cli: {}", e)))?;
+            .map_err(|e| {
+                AgentError::ExecutionError(format!("Failed to spawn gemini-cli: {}", e))
+            })?;
 
         let mut stdin = child
             .stdin
@@ -94,8 +104,9 @@ impl Agent for GeminiAdapter {
         };
 
         // 3. Send request to Gemini CLI
-        let request_str = serde_json::to_string(&request)
-            .map_err(|e| AgentError::ExecutionError(format!("Failed to serialize request: {}", e)))?;
+        let request_str = serde_json::to_string(&request).map_err(|e| {
+            AgentError::ExecutionError(format!("Failed to serialize request: {}", e))
+        })?;
 
         stdin
             .write_all(request_str.as_bytes())
@@ -164,7 +175,9 @@ struct GenerateParams {
 /// JSON-RPC response structure.
 #[derive(Debug, Deserialize)]
 struct JsonRpcResponse {
+    #[allow(dead_code)]
     jsonrpc: String,
+    #[allow(dead_code)]
     id: u32,
     result: Option<serde_json::Value>,
     error: Option<JsonRpcError>,
@@ -178,9 +191,7 @@ struct JsonRpcError {
 }
 
 /// Convert Gemini JSON-RPC response to AgentEvent.
-fn convert_gemini_response(
-    response: JsonRpcResponse,
-) -> Option<Result<AgentEvent, AgentError>> {
+fn convert_gemini_response(response: JsonRpcResponse) -> Option<Result<AgentEvent, AgentError>> {
     // Check for errors
     if let Some(error) = response.error {
         return Some(Err(AgentError::ApiError(format!(

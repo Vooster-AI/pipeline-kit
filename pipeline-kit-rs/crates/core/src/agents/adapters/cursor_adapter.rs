@@ -1,14 +1,19 @@
 //! Cursor adapter implementation using Cursor Agent CLI subprocess.
 
-use crate::agents::base::{Agent, AgentError, AgentEvent, ExecutionContext};
+use crate::agents::base::Agent;
+use crate::agents::base::AgentError;
+use crate::agents::base::AgentEvent;
+use crate::agents::base::ExecutionContext;
 use async_trait::async_trait;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::pin::Pin;
 use std::process::Stdio;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use std::sync::Mutex;
 use tokio::fs;
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::AsyncBufReadExt;
+use tokio::io::BufReader;
 use tokio::process::Command;
 use tokio_stream::Stream;
 use tokio_stream::StreamExt;
@@ -18,6 +23,7 @@ use tokio_stream::StreamExt;
 /// This adapter spawns the `cursor-agent` CLI as a subprocess and parses its
 /// NDJSON (Newline-Delimited JSON) output to create a stream of AgentEvents.
 pub struct CursorAdapter {
+    #[allow(dead_code)]
     name: String,
     model: String,
     system_prompt: String,
@@ -84,7 +90,8 @@ impl Agent for CursorAdapter {
     async fn execute(
         &self,
         context: &ExecutionContext,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError> {
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError>
+    {
         // 1. Ensure AGENTS.md exists
         self.ensure_agent_md(&context.project_path).await?;
 
@@ -118,10 +125,13 @@ impl Agent for CursorAdapter {
         cmd.stderr(Stdio::piped());
 
         // 4. Spawn process
-        let mut child = cmd.spawn()
-            .map_err(|e| AgentError::ExecutionError(format!("Failed to spawn cursor-agent: {}", e)))?;
+        let mut child = cmd.spawn().map_err(|e| {
+            AgentError::ExecutionError(format!("Failed to spawn cursor-agent: {}", e))
+        })?;
 
-        let stdout = child.stdout.take()
+        let stdout = child
+            .stdout
+            .take()
             .ok_or_else(|| AgentError::ExecutionError("Failed to capture stdout".to_string()))?;
 
         // 5. Create NDJSON stream
@@ -149,12 +159,10 @@ impl Agent for CursorAdapter {
                                 Ok(event) => {
                                     convert_cursor_event(event, session_mapping, project_id).await
                                 }
-                                Err(e) => {
-                                    Some(Err(AgentError::StreamParseError(format!(
-                                        "Failed to parse NDJSON: {} (line: {})",
-                                        e, line
-                                    ))))
-                                }
+                                Err(e) => Some(Err(AgentError::StreamParseError(format!(
+                                    "Failed to parse NDJSON: {} (line: {})",
+                                    e, line
+                                )))),
                             }
                         }
                         Err(e) => Some(Err(AgentError::StreamParseError(e.to_string()))),
@@ -176,6 +184,7 @@ struct CursorEvent {
     message: Option<serde_json::Value>,
     tool_call: Option<serde_json::Value>,
     session_id: Option<String>,
+    #[allow(dead_code)]
     duration_ms: Option<u64>,
 }
 
@@ -250,7 +259,10 @@ mod tests {
 
     #[test]
     fn test_extract_project_id() {
-        assert_eq!(CursorAdapter::extract_project_id("/path/to/project"), "project");
+        assert_eq!(
+            CursorAdapter::extract_project_id("/path/to/project"),
+            "project"
+        );
         assert_eq!(CursorAdapter::extract_project_id("/tmp/test"), "test");
     }
 
@@ -260,7 +272,8 @@ mod tests {
             "test".to_string(),
             "gpt-5".to_string(),
             "test prompt".to_string(),
-        ).unwrap();
+        )
+        .unwrap();
 
         // This will return false unless cursor-agent CLI is actually installed
         let available = adapter.check_availability().await;
@@ -273,7 +286,8 @@ mod tests {
             "test".to_string(),
             "gpt-5".to_string(),
             "test system prompt".to_string(),
-        ).unwrap();
+        )
+        .unwrap();
 
         let temp_dir = tempfile::tempdir().unwrap();
         let project_path = temp_dir.path().to_str().unwrap();

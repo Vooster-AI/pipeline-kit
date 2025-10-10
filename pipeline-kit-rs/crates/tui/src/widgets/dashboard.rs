@@ -4,12 +4,17 @@
 //! showing their ID, name, status, and current step.
 
 use pk_protocol::Process;
-use ratatui::{
-    layout::Rect,
-    style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Cell, Row, Table, TableState},
-    Frame,
-};
+use ratatui::layout::Rect;
+use ratatui::style::Color;
+use ratatui::style::Modifier;
+use ratatui::style::Style;
+use ratatui::widgets::Block;
+use ratatui::widgets::Borders;
+use ratatui::widgets::Cell;
+use ratatui::widgets::Row;
+use ratatui::widgets::Table;
+use ratatui::widgets::TableState;
+use ratatui::Frame;
 
 /// Renders the dashboard as a table showing all processes.
 ///
@@ -18,12 +23,7 @@ use ratatui::{
 /// * `area` - The area to render the table in
 /// * `processes` - List of all processes to display
 /// * `selected` - Index of the currently selected process
-pub fn render_dashboard(
-    frame: &mut Frame,
-    area: Rect,
-    processes: &[Process],
-    selected: usize,
-) {
+pub fn render_dashboard(frame: &mut Frame, area: Rect, processes: &[Process], selected: usize) {
     // Create table rows from processes with color-coded status
     let rows: Vec<Row> = processes
         .iter()
@@ -54,11 +54,15 @@ pub fn render_dashboard(
         Cell::from("Status"),
         Cell::from("Step"),
     ])
-    .style(Style::default().add_modifier(Modifier::BOLD).fg(Color::Cyan));
+    .style(
+        Style::default()
+            .add_modifier(Modifier::BOLD)
+            .fg(Color::Cyan),
+    );
 
     // Create the table with proper widths
     let widths = [
-        ratatui::layout::Constraint::Length(8),  // Shortened UUID (first 8 chars)
+        ratatui::layout::Constraint::Length(8), // Shortened UUID (first 8 chars)
         ratatui::layout::Constraint::Percentage(50),
         ratatui::layout::Constraint::Length(15),
         ratatui::layout::Constraint::Length(6),
@@ -99,9 +103,12 @@ fn format_uuid(uuid: &uuid::Uuid) -> String {
 mod tests {
     use super::*;
     use chrono::Utc;
-    use pk_protocol::{Process, ProcessStatus};
+    use pk_protocol::Process;
+    use pk_protocol::ProcessStatus;
     use ratatui::backend::TestBackend;
     use ratatui::Terminal;
+    use std::sync::Arc;
+    use tokio::sync::Notify;
     use uuid::Uuid;
 
     #[test]

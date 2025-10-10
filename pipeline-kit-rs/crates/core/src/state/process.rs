@@ -4,9 +4,11 @@
 //! including state transitions and event emission.
 
 use pk_protocol::ipc::Event;
-use pk_protocol::process_models::{Process, ProcessStatus};
+use pk_protocol::process_models::Process;
+use pk_protocol::process_models::ProcessStatus;
 use std::sync::Arc;
-use tokio::sync::{mpsc::Sender, Notify};
+use tokio::sync::mpsc::Sender;
+use tokio::sync::Notify;
 use uuid::Uuid;
 
 /// Create a new Process with Pending status.

@@ -1,17 +1,22 @@
 //! Mock agent implementations for deterministic testing.
 
 use async_trait::async_trait;
-use pk_core::agents::base::{Agent, AgentError, AgentEvent, ExecutionContext};
+use pk_core::agents::base::Agent;
+use pk_core::agents::base::AgentError;
+use pk_core::agents::base::AgentEvent;
+use pk_core::agents::base::ExecutionContext;
 use std::pin::Pin;
 use tokio_stream::Stream;
 
 /// A mock agent that always succeeds with a predefined response.
+#[allow(dead_code)]
 pub struct MockSuccessAgent {
     pub name: String,
     pub response: String,
 }
 
 impl MockSuccessAgent {
+    #[allow(dead_code)]
     pub fn new(name: &str, response: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -29,7 +34,8 @@ impl Agent for MockSuccessAgent {
     async fn execute(
         &self,
         _context: &ExecutionContext,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError> {
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError>
+    {
         let response = self.response.clone();
 
         // Create a simple stream that emits the response and completes
@@ -43,12 +49,14 @@ impl Agent for MockSuccessAgent {
 }
 
 /// A mock agent that always fails with a predefined error.
+#[allow(dead_code)]
 pub struct MockFailureAgent {
     pub name: String,
     pub error_message: String,
 }
 
 impl MockFailureAgent {
+    #[allow(dead_code)]
     pub fn new(name: &str, error_message: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -66,7 +74,8 @@ impl Agent for MockFailureAgent {
     async fn execute(
         &self,
         _context: &ExecutionContext,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError> {
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError>
+    {
         let error_message = self.error_message.clone();
 
         let stream = async_stream::stream! {
@@ -78,6 +87,7 @@ impl Agent for MockFailureAgent {
 }
 
 /// A mock agent that delays before responding.
+#[allow(dead_code)]
 pub struct MockDelayedAgent {
     pub name: String,
     pub response: String,
@@ -85,6 +95,7 @@ pub struct MockDelayedAgent {
 }
 
 impl MockDelayedAgent {
+    #[allow(dead_code)]
     pub fn new(name: &str, response: &str, delay_ms: u64) -> Self {
         Self {
             name: name.to_string(),
@@ -103,7 +114,8 @@ impl Agent for MockDelayedAgent {
     async fn execute(
         &self,
         _context: &ExecutionContext,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError> {
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError>
+    {
         let response = self.response.clone();
         let delay_ms = self.delay_ms;
 

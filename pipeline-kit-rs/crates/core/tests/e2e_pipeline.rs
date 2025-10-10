@@ -38,7 +38,7 @@ async fn collect_events_until_timeout(
                     break;
                 }
             }
-            Ok(None) => break, // Channel closed
+            Ok(None) => break,  // Channel closed
             Err(_) => continue, // Timeout, keep waiting
         }
     }
@@ -56,10 +56,7 @@ async fn collect_events_until_timeout(
 #[tokio::test]
 async fn test_simple_pipeline_with_mock_agents() {
     // Given: A pipeline with 2 mock agents
-    let agents = vec![
-        create_test_agent("agent-1"),
-        create_test_agent("agent-2"),
-    ];
+    let agents = vec![create_test_agent("agent-1"), create_test_agent("agent-2")];
     let agent_manager = AgentManager::new(agents);
 
     let pipeline = create_simple_pipeline("test-pipeline", 2);
@@ -106,10 +103,7 @@ async fn test_simple_pipeline_with_mock_agents() {
 #[tokio::test]
 async fn test_pipeline_pauses_at_human_review() {
     // Given: A pipeline with HUMAN_REVIEW
-    let agents = vec![
-        create_test_agent("agent-1"),
-        create_test_agent("agent-2"),
-    ];
+    let agents = vec![create_test_agent("agent-1"), create_test_agent("agent-2")];
     let agent_manager = AgentManager::new(agents);
 
     let pipeline = create_pipeline_with_human_review("test-pipeline");
@@ -166,7 +160,7 @@ async fn test_full_pipeline_lifecycle_with_state_manager() {
     // Placeholder assertion to make test compile
     let _ = state_manager;
     let _ = pipeline;
-    assert!(true, "Test infrastructure is in place");
+    // TODO: Add proper assertions once StateManager integration is complete
 }
 
 /// RED: Test error handling when agent fails.
@@ -181,5 +175,5 @@ async fn test_pipeline_handles_agent_failure() {
     // This test is a placeholder for future implementation
     // We'll need MockFailureAgent to be properly integrated
 
-    assert!(true, "Test infrastructure ready for failure scenarios");
+    // TODO: Implement agent failure test once MockFailureAgent is integrated
 }

@@ -4,11 +4,14 @@
 //! It supports keyboard navigation (j/k, PageUp/PageDown) and shows a scrollbar to indicate position.
 
 use pk_protocol::Process;
-use ratatui::{
-    layout::Rect,
-    widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState},
-    Frame,
-};
+use ratatui::layout::Rect;
+use ratatui::widgets::Block;
+use ratatui::widgets::Borders;
+use ratatui::widgets::Paragraph;
+use ratatui::widgets::Scrollbar;
+use ratatui::widgets::ScrollbarOrientation;
+use ratatui::widgets::ScrollbarState;
+use ratatui::Frame;
 
 /// Widget for displaying process details with scrolling support.
 pub struct DetailView {
@@ -137,6 +140,9 @@ mod tests {
     use uuid::Uuid;
 
     fn create_test_process(logs: Vec<String>) -> Process {
+        use std::sync::Arc;
+        use tokio::sync::Notify;
+
         Process {
             id: Uuid::new_v4(),
             pipeline_name: "test-pipeline".to_string(),
@@ -145,6 +151,7 @@ mod tests {
             started_at: chrono::Utc::now(),
             completed_at: None,
             logs,
+            resume_notifier: Arc::new(Notify::new()),
         }
     }
 

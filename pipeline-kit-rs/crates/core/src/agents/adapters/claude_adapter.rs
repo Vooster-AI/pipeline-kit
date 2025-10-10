@@ -1,13 +1,19 @@
 //! Claude adapter implementation using Claude CLI subprocess.
 
-use crate::agents::base::{Agent, AgentError, AgentEvent, ExecutionContext};
+use crate::agents::base::Agent;
+use crate::agents::base::AgentError;
+use crate::agents::base::AgentEvent;
+use crate::agents::base::ExecutionContext;
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use std::collections::HashMap;
 use std::pin::Pin;
 use std::process::Stdio;
-use std::sync::{Arc, Mutex};
-use tokio::io::{AsyncBufReadExt, BufReader};
+use std::sync::Arc;
+use std::sync::Mutex;
+use tokio::io::AsyncBufReadExt;
+use tokio::io::BufReader;
 use tokio::process::Command;
 use tokio_stream::Stream;
 use tokio_stream::StreamExt;
@@ -17,6 +23,7 @@ use tokio_stream::StreamExt;
 /// This adapter spawns the `claude` CLI as a subprocess and parses its
 /// JSON Lines output to create a stream of AgentEvents.
 pub struct ClaudeAdapter {
+    #[allow(dead_code)]
     name: String,
     model: String,
     system_prompt: String,
@@ -62,14 +69,16 @@ impl ClaudeAdapter {
             "customSystemPrompt": self.system_prompt
         });
 
-        let mut temp_file = tempfile::NamedTempFile::new()
-            .map_err(|e| AgentError::ExecutionError(format!("Failed to create temp file: {}", e)))?;
+        let mut temp_file = tempfile::NamedTempFile::new().map_err(|e| {
+            AgentError::ExecutionError(format!("Failed to create temp file: {}", e))
+        })?;
 
         serde_json::to_writer(&mut temp_file, &settings)
             .map_err(|e| AgentError::ExecutionError(format!("Failed to write settings: {}", e)))?;
 
         // Flush to ensure data is written
-        temp_file.flush()
+        temp_file
+            .flush()
             .map_err(|e| AgentError::ExecutionError(format!("Failed to flush settings: {}", e)))?;
 
         Ok(temp_file)
@@ -95,10 +104,13 @@ impl Agent for ClaudeAdapter {
     async fn execute(
         &self,
         context: &ExecutionContext,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError> {
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError>
+    {
         // 1. Create settings file
         let settings_file = self.create_settings_file()?;
-        let settings_path = settings_file.path().to_str()
+        let settings_path = settings_file
+            .path()
+            .to_str()
             .ok_or_else(|| AgentError::ExecutionError("Invalid settings path".to_string()))?
             .to_string();
 
@@ -119,11 +131,13 @@ impl Agent for ClaudeAdapter {
         // Tool filtering based on is_initial_prompt
         if context.is_initial_prompt {
             // Initial prompt: exclude TodoWrite
-            cmd.arg("--allowed-tools").arg("Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS,WebFetch,WebSearch");
+            cmd.arg("--allowed-tools")
+                .arg("Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS,WebFetch,WebSearch");
             cmd.arg("--disallowed-tools").arg("TodoWrite");
         } else {
             // Subsequent prompts: include TodoWrite
-            cmd.arg("--allowed-tools").arg("Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS,WebFetch,WebSearch,TodoWrite");
+            cmd.arg("--allowed-tools")
+                .arg("Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS,WebFetch,WebSearch,TodoWrite");
         }
 
         // Session resumption
@@ -140,10 +154,13 @@ impl Agent for ClaudeAdapter {
         cmd.stderr(Stdio::piped());
 
         // 4. Spawn the process
-        let mut child = cmd.spawn()
-            .map_err(|e| AgentError::ExecutionError(format!("Failed to spawn claude CLI: {}", e)))?;
+        let mut child = cmd.spawn().map_err(|e| {
+            AgentError::ExecutionError(format!("Failed to spawn claude CLI: {}", e))
+        })?;
 
-        let stdout = child.stdout.take()
+        let stdout = child
+            .stdout
+            .take()
             .ok_or_else(|| AgentError::ExecutionError("Failed to capture stdout".to_string()))?;
 
         // 5. Create stream of lines
@@ -172,12 +189,10 @@ impl Agent for ClaudeAdapter {
                                 Ok(msg) => {
                                     convert_claude_message(msg, session_mapping, project_id).await
                                 }
-                                Err(e) => {
-                                    Some(Err(AgentError::StreamParseError(format!(
-                                        "Failed to parse JSON: {} (line: {})",
-                                        e, line
-                                    ))))
-                                }
+                                Err(e) => Some(Err(AgentError::StreamParseError(format!(
+                                    "Failed to parse JSON: {} (line: {})",
+                                    e, line
+                                )))),
                             }
                         }
                         Err(e) => Some(Err(AgentError::StreamParseError(e.to_string()))),
@@ -197,22 +212,26 @@ enum ClaudeMessage {
     #[serde(rename = "system")]
     System {
         session_id: Option<String>,
+        #[allow(dead_code)]
         model: Option<String>,
     },
     #[serde(rename = "assistant")]
-    Assistant {
-        content: Vec<ContentBlock>,
-    },
+    Assistant { content: Vec<ContentBlock> },
     #[serde(rename = "user")]
     User {
+        #[allow(dead_code)]
         content: String,
     },
     #[serde(rename = "result")]
     Result {
         session_id: Option<String>,
+        #[allow(dead_code)]
         duration_ms: Option<u64>,
+        #[allow(dead_code)]
         total_cost_usd: Option<f64>,
+        #[allow(dead_code)]
         num_turns: Option<u32>,
+        #[allow(dead_code)]
         is_error: Option<bool>,
     },
 }
@@ -222,9 +241,7 @@ enum ClaudeMessage {
 #[serde(tag = "type")]
 enum ContentBlock {
     #[serde(rename = "text")]
-    Text {
-        text: String,
-    },
+    Text { text: String },
     #[serde(rename = "tool_use")]
     ToolUse {
         id: String,
@@ -267,7 +284,8 @@ async fn convert_claude_message(
                         let tool_json = serde_json::to_string(&serde_json::json!({
                             "name": name,
                             "input": input
-                        })).unwrap_or_else(|_| format!("{{\"name\":\"{}\"}}", name));
+                        }))
+                        .unwrap_or_else(|_| format!("{{\"name\":\"{}\"}}", name));
                         return Some(Ok(AgentEvent::ToolCall(tool_json)));
                     }
                     ContentBlock::ToolResult { .. } => {
@@ -309,7 +327,10 @@ mod tests {
 
     #[test]
     fn test_extract_project_id() {
-        assert_eq!(ClaudeAdapter::extract_project_id("/path/to/project"), "project");
+        assert_eq!(
+            ClaudeAdapter::extract_project_id("/path/to/project"),
+            "project"
+        );
         assert_eq!(ClaudeAdapter::extract_project_id("/tmp/test"), "test");
         assert_eq!(ClaudeAdapter::extract_project_id("relative/path"), "path");
     }
@@ -320,7 +341,8 @@ mod tests {
             "test".to_string(),
             "claude-sonnet-4.5".to_string(),
             "test prompt".to_string(),
-        ).unwrap();
+        )
+        .unwrap();
 
         let settings_file = adapter.create_settings_file();
         assert!(settings_file.is_ok());
@@ -341,7 +363,8 @@ mod tests {
             "test".to_string(),
             "claude-sonnet-4.5".to_string(),
             "test prompt".to_string(),
-        ).unwrap();
+        )
+        .unwrap();
 
         // This will return false unless claude CLI is actually installed
         let available = adapter.check_availability().await;

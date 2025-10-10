@@ -1,8 +1,12 @@
 //! Agent factory for creating agent instances from configurations.
 
-use crate::agents::base::Agent;
+use crate::agents::adapters::ClaudeAdapter;
+use crate::agents::adapters::CodexAdapter;
+use crate::agents::adapters::CursorAdapter;
+use crate::agents::adapters::GeminiAdapter;
+use crate::agents::adapters::MockAgent;
 use crate::agents::agent_type::AgentType;
-use crate::agents::adapters::{ClaudeAdapter, CodexAdapter, CursorAdapter, GeminiAdapter, MockAgent};
+use crate::agents::base::Agent;
 use anyhow::Result;
 use pk_protocol::agent_models;
 use std::sync::Arc;
@@ -94,9 +98,7 @@ impl AgentFactory {
                 );
                 Ok(Arc::new(MockAgent::success()))
             }
-            AgentType::Mock => {
-                Ok(Arc::new(MockAgent::success()))
-            }
+            AgentType::Mock => Ok(Arc::new(MockAgent::success())),
         }
     }
 }

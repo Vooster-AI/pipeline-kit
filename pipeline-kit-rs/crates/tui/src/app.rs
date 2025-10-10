@@ -5,19 +5,27 @@
 
 use anyhow::Result;
 use crossterm::event::KeyEvent;
-use pk_protocol::{Event, Op, Process};
-use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
-    widgets::{Block, Borders, Paragraph},
-    Frame,
-};
+use pk_protocol::Event;
+use pk_protocol::Op;
+use pk_protocol::Process;
+use ratatui::layout::Constraint;
+use ratatui::layout::Direction;
+use ratatui::layout::Layout;
+use ratatui::layout::Rect;
+use ratatui::style::Color;
+use ratatui::style::Style;
+use ratatui::widgets::Block;
+use ratatui::widgets::Borders;
+use ratatui::widgets::Paragraph;
+use ratatui::Frame;
 use tokio::select;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::mpsc::UnboundedSender;
 use tokio_stream::StreamExt;
 
 use crate::event_handler;
-use crate::tui::{Tui, TuiEvent};
+use crate::tui::Tui;
+use crate::tui::TuiEvent;
 use crate::widgets::dashboard;
 use crate::widgets::CommandComposer;
 
@@ -43,10 +51,7 @@ pub struct App {
 
 impl App {
     /// Create a new App with communication channels.
-    pub fn new(
-        op_tx: UnboundedSender<Op>,
-        event_rx: UnboundedReceiver<Event>,
-    ) -> Self {
+    pub fn new(op_tx: UnboundedSender<Op>, event_rx: UnboundedReceiver<Event>) -> Self {
         Self {
             processes: Vec::new(),
             selected_index: 0,
@@ -107,7 +112,9 @@ impl App {
 
     /// Handle keyboard events.
     fn handle_key_event(&mut self, key_event: KeyEvent) {
-        use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
+        use crossterm::event::KeyCode;
+        use crossterm::event::KeyEventKind;
+        use crossterm::event::KeyModifiers;
 
         // Ignore key release events
         if key_event.kind != KeyEventKind::Press {
@@ -200,9 +207,9 @@ impl App {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Percentage(40),  // Dashboard
-                Constraint::Percentage(50),  // Detail
-                Constraint::Length(3),        // Command input
+                Constraint::Percentage(40), // Dashboard
+                Constraint::Percentage(50), // Detail
+                Constraint::Length(3),      // Command input
             ])
             .split(area);
 
@@ -252,14 +259,14 @@ impl App {
                 width: area.width,
                 height: popup_height,
             };
-            self.command_composer.render_popup(popup_area, frame.buffer_mut());
+            self.command_composer
+                .render_popup(popup_area, frame.buffer_mut());
         }
 
         // Render error message if any
         if let Some(ref error) = self.error_message {
             let error_text = format!("Error: {}", error);
-            let error_paragraph = Paragraph::new(error_text)
-                .style(Style::default().fg(Color::Red));
+            let error_paragraph = Paragraph::new(error_text).style(Style::default().fg(Color::Red));
             let error_area = Rect {
                 x: area.x + 2,
                 y: area.y + area.height - 1,
@@ -299,7 +306,9 @@ mod tests {
         let buffer = terminal.backend().buffer();
 
         // Check that the dashboard title is rendered
-        let dashboard_title = buffer.content().iter()
+        let dashboard_title = buffer
+            .content()
+            .iter()
             .map(|cell| cell.symbol())
             .collect::<String>();
         assert!(dashboard_title.contains("Dashboard"));
@@ -389,8 +398,11 @@ mod tests {
         let mut app = App::new(op_tx, event_rx);
 
         // Add some test processes
-        use pk_protocol::ProcessStatus;
         use chrono::Utc;
+        use pk_protocol::ProcessStatus;
+
+        use std::sync::Arc;
+        use tokio::sync::Notify;
 
         let process1 = Process {
             id: Uuid::new_v4(),
@@ -400,6 +412,7 @@ mod tests {
             logs: vec![],
             started_at: Utc::now(),
             completed_at: None,
+            resume_notifier: Arc::new(Notify::new()),
         };
 
         let process2 = Process {
@@ -410,6 +423,7 @@ mod tests {
             logs: vec![],
             started_at: Utc::now(),
             completed_at: Some(Utc::now()),
+            resume_notifier: Arc::new(Notify::new()),
         };
 
         app.processes.push(process1);
@@ -433,21 +447,33 @@ mod tests {
 
         // The Table widget should render proper headers
         assert!(content.contains("ID"), "Should have 'ID' column header");
-        assert!(content.contains("Pipeline"), "Should have 'Pipeline' column header");
-        assert!(content.contains("Status"), "Should have 'Status' column header");
+        assert!(
+            content.contains("Pipeline"),
+            "Should have 'Pipeline' column header"
+        );
+        assert!(
+            content.contains("Status"),
+            "Should have 'Status' column header"
+        );
         assert!(content.contains("Step"), "Should have 'Step' column header");
 
         // Should contain process data
-        assert!(content.contains("test-pipeline-1"), "Should show first pipeline name");
-        assert!(content.contains("test-pipeline-2"), "Should show second pipeline name");
+        assert!(
+            content.contains("test-pipeline-1"),
+            "Should show first pipeline name"
+        );
+        assert!(
+            content.contains("test-pipeline-2"),
+            "Should show second pipeline name"
+        );
 
         // Should NOT contain the Paragraph-style ">" prefix
         // (Table uses ">>" as highlight symbol instead)
         // This assertion will fail with current Paragraph implementation
         let lines: Vec<&str> = content.split('\n').collect();
-        let has_paragraph_style_prefix = lines.iter().any(|line| {
-            line.trim_start().starts_with(">") && !line.trim_start().starts_with(">>")
-        });
+        let has_paragraph_style_prefix = lines
+            .iter()
+            .any(|line| line.trim_start().starts_with(">") && !line.trim_start().starts_with(">>"));
         assert!(
             !has_paragraph_style_prefix,
             "Should NOT use Paragraph-style single '>' prefix"

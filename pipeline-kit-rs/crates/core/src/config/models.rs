@@ -4,7 +4,9 @@
 //! global settings, agent definitions, and pipeline definitions into a
 //! single configuration object.
 
-use pk_protocol::{agent_models::Agent, config_models::GlobalConfig, pipeline_models::Pipeline};
+use pk_protocol::agent_models::Agent;
+use pk_protocol::config_models::GlobalConfig;
+use pk_protocol::pipeline_models::Pipeline;
 
 /// Unified application configuration loaded from `.pipeline-kit/` directory.
 ///

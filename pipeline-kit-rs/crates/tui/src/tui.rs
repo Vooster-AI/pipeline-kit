@@ -4,22 +4,25 @@
 //! handling raw mode setup, event streaming, and frame scheduling.
 
 use anyhow::Result;
-use crossterm::{
-    event::{DisableBracketedPaste, EnableBracketedPaste, Event, KeyEvent},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
-use ratatui::{
-    backend::CrosstermBackend,
-    Terminal,
-};
-use std::{
-    io::{stdout, Stdout},
-    pin::Pin,
-    time::{Duration, Instant},
-};
+use crossterm::event::DisableBracketedPaste;
+use crossterm::event::EnableBracketedPaste;
+use crossterm::event::Event;
+use crossterm::event::KeyEvent;
+use crossterm::execute;
+use crossterm::terminal::disable_raw_mode;
+use crossterm::terminal::enable_raw_mode;
+use crossterm::terminal::EnterAlternateScreen;
+use crossterm::terminal::LeaveAlternateScreen;
+use ratatui::backend::CrosstermBackend;
+use ratatui::Terminal;
+use std::io::stdout;
+use std::io::Stdout;
+use std::pin::Pin;
+use std::time::Duration;
+use std::time::Instant;
 use tokio::select;
-use tokio_stream::{Stream, StreamExt};
+use tokio_stream::Stream;
+use tokio_stream::StreamExt;
 
 /// Type alias for the terminal backend we're using.
 pub type TerminalBackend = CrosstermBackend<Stdout>;
@@ -67,14 +70,15 @@ impl Tui {
         // Spawn background task to coalesce frame requests
         let draw_tx_clone = draw_tx.clone();
         tokio::spawn(async move {
-            use tokio::time::{sleep_until, Instant as TokioInstant};
+            use tokio::time::sleep_until;
+            use tokio::time::Instant as TokioInstant;
 
             let mut rx = frame_schedule_rx;
             let mut next_deadline: Option<Instant> = None;
 
             loop {
-                let target = next_deadline
-                    .unwrap_or_else(|| Instant::now() + Duration::from_secs(3600));
+                let target =
+                    next_deadline.unwrap_or_else(|| Instant::now() + Duration::from_secs(3600));
                 let sleep_fut = sleep_until(TokioInstant::from_std(target));
                 tokio::pin!(sleep_fut);
 

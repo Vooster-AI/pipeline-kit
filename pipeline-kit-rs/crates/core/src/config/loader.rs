@@ -6,12 +6,14 @@
 //! - `agents/*.md`: Agent definitions with YAML front matter
 //! - `pipelines/*.yaml`: Pipeline definitions
 
-use crate::config::{
-    error::{ConfigError, ConfigResult},
-    models::AppConfig,
-};
-use gray_matter::{engine::YAML, Matter};
-use pk_protocol::{agent_models::Agent, config_models::GlobalConfig, pipeline_models::Pipeline};
+use crate::config::error::ConfigError;
+use crate::config::error::ConfigResult;
+use crate::config::models::AppConfig;
+use gray_matter::engine::YAML;
+use gray_matter::Matter;
+use pk_protocol::agent_models::Agent;
+use pk_protocol::config_models::GlobalConfig;
+use pk_protocol::pipeline_models::Pipeline;
 use std::path::Path;
 use walkdir::WalkDir;
 
@@ -84,19 +86,17 @@ fn load_global_config(pk_dir: &Path) -> ConfigResult<GlobalConfig> {
         return Ok(GlobalConfig { git: false });
     }
 
-    let content = std::fs::read_to_string(&config_path).map_err(|source| {
-        ConfigError::FileRead {
+    let content =
+        std::fs::read_to_string(&config_path).map_err(|source| ConfigError::FileRead {
             path: config_path.clone(),
             source,
-        }
-    })?;
+        })?;
 
-    let config: GlobalConfig = toml::from_str(&content).map_err(|source| {
-        ConfigError::TomlParse {
+    let config: GlobalConfig =
+        toml::from_str(&content).map_err(|source| ConfigError::TomlParse {
             path: config_path,
             source,
-        }
-    })?;
+        })?;
 
     Ok(config)
 }
@@ -270,10 +270,7 @@ sub-agents:
         // Assert: Verify all configuration was loaded correctly
 
         // Global config
-        assert_eq!(
-            config.global.git, true,
-            "Global git setting should be true"
-        );
+        assert!(config.global.git, "Global git setting should be true");
 
         // Agents
         assert_eq!(config.agents.len(), 1, "Should load 1 agent");
@@ -314,10 +311,12 @@ sub-agents:
         let root = dir.path();
 
         // No .pipeline-kit directory exists
-        let config = load_config(root).await.expect("Should handle missing .pipeline-kit");
+        let config = load_config(root)
+            .await
+            .expect("Should handle missing .pipeline-kit");
 
         // Should return empty/default configuration
-        assert_eq!(config.global.git, false, "Default git should be false");
+        assert!(!config.global.git, "Default git should be false");
         assert!(config.agents.is_empty(), "Should have no agents");
         assert!(config.pipelines.is_empty(), "Should have no pipelines");
     }
@@ -332,14 +331,13 @@ sub-agents:
         fs::create_dir_all(&pk_dir).expect("Failed to create .pipeline-kit");
 
         // Only write config.toml
-        fs::write(pk_dir.join("config.toml"), "git = false")
-            .expect("Failed to write config.toml");
+        fs::write(pk_dir.join("config.toml"), "git = false").expect("Failed to write config.toml");
 
         let config = load_config(root)
             .await
             .expect("Should handle partial config");
 
-        assert_eq!(config.global.git, false);
+        assert!(!config.global.git);
         assert!(config.agents.is_empty(), "Should have no agents");
         assert!(config.pipelines.is_empty(), "Should have no pipelines");
     }
@@ -406,10 +404,7 @@ sub-agents:
             .expect("Failed to write agent file");
 
         let result = load_config(root).await;
-        assert!(
-            result.is_err(),
-            "Should fail on agent without front matter"
-        );
+        assert!(result.is_err(), "Should fail on agent without front matter");
 
         if let Err(ConfigError::MarkdownParse { path, reason }) = result {
             assert!(path.ends_with("test.md"));
@@ -500,9 +495,7 @@ sub-agents:
             .expect("Failed to write pipeline file");
         }
 
-        let config = load_config(root)
-            .await
-            .expect("Should load multiple files");
+        let config = load_config(root).await.expect("Should load multiple files");
 
         assert_eq!(config.agents.len(), 3, "Should load 3 agents");
         assert_eq!(config.pipelines.len(), 2, "Should load 2 pipelines");

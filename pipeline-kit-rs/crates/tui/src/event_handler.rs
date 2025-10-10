@@ -5,10 +5,16 @@
 //! - Keyboard events (user input)
 //! - Command parsing and submission
 
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
-use pk_protocol::{Event, Op, Process, ProcessStatus};
+use crossterm::event::KeyCode;
+use crossterm::event::KeyEvent;
+use crossterm::event::KeyEventKind;
+use pk_protocol::Event;
+use pk_protocol::Op;
+use pk_protocol::Process;
+use pk_protocol::ProcessStatus;
 use std::sync::Arc;
-use tokio::sync::{mpsc::UnboundedSender, Notify};
+use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::Notify;
 
 /// Handle an event received from the core.
 pub fn handle_core_event(processes: &mut Vec<Process>, event: Event) {
@@ -133,7 +139,7 @@ fn submit_command(
     // Parse simple slash commands
     if command_input.starts_with('/') {
         let parts: Vec<&str> = command_input.split_whitespace().collect();
-        match parts.first().map(|s| *s) {
+        match parts.first().copied() {
             Some("/start") => {
                 if let Some(name) = parts.get(1) {
                     let _ = op_tx.send(Op::StartPipeline {

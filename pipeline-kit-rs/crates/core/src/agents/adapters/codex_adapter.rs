@@ -3,15 +3,22 @@
 //! This adapter communicates with the OpenAI Codex CLI using JSON-RPC protocol
 //! over stdin/stdout pipes, following the Python reference implementation.
 
-use crate::agents::base::{Agent, AgentError, AgentEvent, ExecutionContext};
+use crate::agents::base::Agent;
+use crate::agents::base::AgentError;
+use crate::agents::base::AgentEvent;
+use crate::agents::base::ExecutionContext;
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use std::collections::HashMap;
 use std::pin::Pin;
 use std::process::Stdio;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use std::sync::Mutex;
 use tokio::fs;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::AsyncBufReadExt;
+use tokio::io::AsyncWriteExt;
+use tokio::io::BufReader;
 use tokio::process::Command;
 use tokio_stream::Stream;
 use tokio_stream::StreamExt;
@@ -20,6 +27,7 @@ use tokio_stream::StreamExt;
 ///
 /// This adapter spawns the `codex` CLI process and communicates via JSON-RPC.
 pub struct CodexAdapter {
+    #[allow(dead_code)]
     name: String,
     model: String,
     system_prompt: String,
@@ -83,11 +91,9 @@ impl CodexAdapter {
             .join(".pipeline-kit")
             .join("codex_rollouts");
 
-        fs::create_dir_all(&rollout_dir)
-            .await
-            .map_err(|e| {
-                AgentError::ExecutionError(format!("Failed to create rollout directory: {}", e))
-            })?;
+        fs::create_dir_all(&rollout_dir).await.map_err(|e| {
+            AgentError::ExecutionError(format!("Failed to create rollout directory: {}", e))
+        })?;
 
         // Rollout file: <project_id>.yaml
         let rollout_file = rollout_dir.join(format!("{}.yaml", project_id));
@@ -126,13 +132,16 @@ impl Agent for CodexAdapter {
     async fn execute(
         &self,
         context: &ExecutionContext,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError> {
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError>
+    {
         // 1. Ensure AGENTS.md exists
         self.ensure_agent_md(&context.project_path).await?;
 
         // 2. Get rollout file path
         let project_id = Self::extract_project_id(&context.project_path);
-        let rollout_path = self.get_rollout_path(&context.project_path, &project_id).await?;
+        let rollout_path = self
+            .get_rollout_path(&context.project_path, &project_id)
+            .await?;
 
         // 3. Build command
         let mut cmd = Command::new(Self::get_executable_name());
@@ -153,9 +162,9 @@ impl Agent for CodexAdapter {
         cmd.stderr(Stdio::piped());
 
         // 4. Spawn process
-        let mut child = cmd.spawn().map_err(|e| {
-            AgentError::ExecutionError(format!("Failed to spawn codex CLI: {}", e))
-        })?;
+        let mut child = cmd
+            .spawn()
+            .map_err(|e| AgentError::ExecutionError(format!("Failed to spawn codex CLI: {}", e)))?;
 
         let mut stdin = child
             .stdin
@@ -179,8 +188,9 @@ impl Agent for CodexAdapter {
         };
 
         // 6. Send request to Codex CLI
-        let request_str = serde_json::to_string(&request)
-            .map_err(|e| AgentError::ExecutionError(format!("Failed to serialize request: {}", e)))?;
+        let request_str = serde_json::to_string(&request).map_err(|e| {
+            AgentError::ExecutionError(format!("Failed to serialize request: {}", e))
+        })?;
 
         stdin
             .write_all(request_str.as_bytes())
@@ -254,7 +264,9 @@ struct ExecuteParams {
 /// JSON-RPC response structure.
 #[derive(Debug, Deserialize)]
 struct JsonRpcResponse {
+    #[allow(dead_code)]
     jsonrpc: String,
+    #[allow(dead_code)]
     id: u32,
     result: Option<CodexResult>,
     error: Option<JsonRpcError>,
@@ -292,9 +304,7 @@ struct JsonRpcError {
 }
 
 /// Convert Codex JSON-RPC response to AgentEvent.
-fn convert_codex_response(
-    response: JsonRpcResponse,
-) -> Option<Result<AgentEvent, AgentError>> {
+fn convert_codex_response(response: JsonRpcResponse) -> Option<Result<AgentEvent, AgentError>> {
     // Check for errors
     if let Some(error) = response.error {
         return Some(Err(AgentError::ApiError(format!(
@@ -385,7 +395,10 @@ mod tests {
 
     #[test]
     fn test_extract_project_id() {
-        assert_eq!(CodexAdapter::extract_project_id("/path/to/project"), "project");
+        assert_eq!(
+            CodexAdapter::extract_project_id("/path/to/project"),
+            "project"
+        );
         assert_eq!(CodexAdapter::extract_project_id("/tmp/test"), "test");
     }
 

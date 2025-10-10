@@ -4,13 +4,17 @@
 //! autocomplete suggestions when the user types a slash command.
 
 use pk_protocol::Op;
-use ratatui::{
-    buffer::Buffer,
-    layout::Rect,
-    style::{Color, Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Widget},
-};
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+use ratatui::style::Color;
+use ratatui::style::Modifier;
+use ratatui::style::Style;
+use ratatui::text::Line;
+use ratatui::text::Span;
+use ratatui::widgets::Block;
+use ratatui::widgets::Borders;
+use ratatui::widgets::Paragraph;
+use ratatui::widgets::Widget;
 use uuid::Uuid;
 
 /// Available slash commands with their descriptions.
@@ -174,8 +178,7 @@ impl CommandComposer {
         block.render(area, buf);
 
         let text = format!("> {}", self.input);
-        let paragraph = Paragraph::new(text)
-            .style(Style::default().fg(Color::Yellow));
+        let paragraph = Paragraph::new(text).style(Style::default().fg(Color::Yellow));
         paragraph.render(inner, buf);
     }
 
@@ -251,20 +254,20 @@ impl CommandComposer {
                 }
                 "/pause" => {
                     let process_id_str = parts.get(1).ok_or("Missing process ID")?;
-                    let process_id = Uuid::parse_str(process_id_str)
-                        .map_err(|_| "Invalid process ID format")?;
+                    let process_id =
+                        Uuid::parse_str(process_id_str).map_err(|_| "Invalid process ID format")?;
                     Ok(Some(Op::PauseProcess { process_id }))
                 }
                 "/resume" => {
                     let process_id_str = parts.get(1).ok_or("Missing process ID")?;
-                    let process_id = Uuid::parse_str(process_id_str)
-                        .map_err(|_| "Invalid process ID format")?;
+                    let process_id =
+                        Uuid::parse_str(process_id_str).map_err(|_| "Invalid process ID format")?;
                     Ok(Some(Op::ResumeProcess { process_id }))
                 }
                 "/kill" => {
                     let process_id_str = parts.get(1).ok_or("Missing process ID")?;
-                    let process_id = Uuid::parse_str(process_id_str)
-                        .map_err(|_| "Invalid process ID format")?;
+                    let process_id =
+                        Uuid::parse_str(process_id_str).map_err(|_| "Invalid process ID format")?;
                     Ok(Some(Op::KillProcess { process_id }))
                 }
                 "/list" => Ok(Some(Op::GetDashboardState)),
@@ -455,7 +458,10 @@ mod tests {
         assert!(op.is_some());
 
         match op.unwrap() {
-            Op::StartPipeline { name, reference_file } => {
+            Op::StartPipeline {
+                name,
+                reference_file,
+            } => {
                 assert_eq!(name, "my-pipeline");
                 assert!(reference_file.is_none());
             }

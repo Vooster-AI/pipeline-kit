@@ -6,11 +6,11 @@
 //! - Mock agents
 //! - Helper functions
 
-pub mod fixtures;
 pub mod assertions;
+pub mod fixtures;
 pub mod mock_agents;
 
-pub use fixtures::*;
 pub use assertions::*;
+pub use fixtures::*;
 #[allow(unused_imports)]
 pub use mock_agents::*;

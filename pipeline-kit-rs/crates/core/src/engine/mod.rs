@@ -3,15 +3,20 @@
 //! The PipelineEngine is responsible for executing pipeline steps sequentially,
 //! managing agent interactions, and coordinating process state transitions.
 
-use crate::agents::base::{AgentEvent, ExecutionContext};
+use crate::agents::base::AgentEvent;
+use crate::agents::base::ExecutionContext;
 use crate::agents::manager::AgentManager;
-use crate::state::process::{
-    advance_step, complete_process, create_process, fail_process, log_to_process,
-    pause_for_human_review, start_process,
-};
-use anyhow::{anyhow, Result};
+use crate::state::process::advance_step;
+use crate::state::process::complete_process;
+use crate::state::process::fail_process;
+use crate::state::process::log_to_process;
+use crate::state::process::pause_for_human_review;
+use crate::state::process::start_process;
+use anyhow::anyhow;
+use anyhow::Result;
 use pk_protocol::ipc::Event;
-use pk_protocol::pipeline_models::{Pipeline, ProcessStep};
+use pk_protocol::pipeline_models::Pipeline;
+use pk_protocol::pipeline_models::ProcessStep;
 use pk_protocol::process_models::Process;
 use tokio::sync::mpsc::Sender;
 use tokio_stream::StreamExt;
@@ -179,9 +184,10 @@ impl PipelineEngine {
         // Create execution context
         // For now, we use a simple instruction. Future versions may include
         // more context from the pipeline definition.
-        let context = ExecutionContext::new(
-            format!("Execute step for pipeline: {}", process.pipeline_name)
-        );
+        let context = ExecutionContext::new(format!(
+            "Execute step for pipeline: {}",
+            process.pipeline_name
+        ));
 
         // Execute the agent
         let mut stream = self

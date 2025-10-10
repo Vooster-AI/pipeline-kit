@@ -1,6 +1,9 @@
 //! Mock agent implementation for testing.
 
-use crate::agents::base::{Agent, AgentError, AgentEvent, ExecutionContext};
+use crate::agents::base::Agent;
+use crate::agents::base::AgentError;
+use crate::agents::base::AgentEvent;
+use crate::agents::base::ExecutionContext;
 use async_trait::async_trait;
 use std::pin::Pin;
 use tokio_stream::Stream;
@@ -54,9 +57,12 @@ impl Agent for MockAgent {
     async fn execute(
         &self,
         _context: &ExecutionContext,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError> {
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<AgentEvent, AgentError>> + Send>>, AgentError>
+    {
         if !self.available {
-            return Err(AgentError::NotAvailable("Mock agent not available".to_string()));
+            return Err(AgentError::NotAvailable(
+                "Mock agent not available".to_string(),
+            ));
         }
 
         let events = self.events.clone();

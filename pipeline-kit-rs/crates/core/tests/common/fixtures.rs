@@ -1,10 +1,11 @@
 //! Test fixtures for creating sample configurations and test data.
 
-use pk_protocol::{
-    agent_models::Agent,
-    pipeline_models::{MasterAgentConfig, Pipeline, ProcessStep},
-    process_models::{Process, ProcessStatus},
-};
+use pk_protocol::agent_models::Agent;
+use pk_protocol::pipeline_models::MasterAgentConfig;
+use pk_protocol::pipeline_models::Pipeline;
+use pk_protocol::pipeline_models::ProcessStep;
+use pk_protocol::process_models::Process;
+use pk_protocol::process_models::ProcessStatus;
 use std::collections::HashMap;
 use tempfile::TempDir;
 use uuid::Uuid;
@@ -17,6 +18,7 @@ use uuid::Uuid;
 /// - Sample pipeline and agent configuration files
 ///
 /// Returns a TempDir that must be kept alive for the test duration.
+#[allow(dead_code)]
 pub fn create_test_project() -> std::io::Result<TempDir> {
     let temp_dir = tempfile::tempdir()?;
     let root = temp_dir.path();
@@ -143,6 +145,7 @@ pub fn create_test_process(pipeline_name: &str, status: ProcessStatus) -> Proces
 }
 
 /// Create a running process with some log entries.
+#[allow(dead_code)]
 pub fn create_running_process(pipeline_name: &str) -> Process {
     let mut process = create_test_process(pipeline_name, ProcessStatus::Running);
     process.logs = vec![
@@ -153,11 +156,13 @@ pub fn create_running_process(pipeline_name: &str) -> Process {
 }
 
 /// Create a paused process.
+#[allow(dead_code)]
 pub fn create_paused_process(pipeline_name: &str) -> Process {
     create_test_process(pipeline_name, ProcessStatus::Paused)
 }
 
 /// Create a completed process.
+#[allow(dead_code)]
 pub fn create_completed_process(pipeline_name: &str) -> Process {
     let mut process = create_test_process(pipeline_name, ProcessStatus::Completed);
     process.completed_at = Some(chrono::Utc::now());

@@ -10,7 +10,9 @@ use pk_core::agents::manager::AgentManager;
 use pk_core::engine::PipelineEngine;
 use pk_protocol::agent_models::Agent as AgentConfig;
 use pk_protocol::ipc::Event;
-use pk_protocol::pipeline_models::{MasterAgentConfig, Pipeline, ProcessStep};
+use pk_protocol::pipeline_models::MasterAgentConfig;
+use pk_protocol::pipeline_models::Pipeline;
+use pk_protocol::pipeline_models::ProcessStep;
 use pk_protocol::process_models::ProcessStatus;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
@@ -70,9 +72,20 @@ async fn test_pipeline_engine_sequential_execution_with_human_review() {
 
     // Execute pipeline
     let engine = PipelineEngine::new(agent_manager);
-    let handle = tokio::spawn(async move {
-        engine.run(&pipeline, events_tx).await
-    });
+
+    // Create initial process
+    let process = pk_protocol::Process {
+        id: uuid::Uuid::new_v4(),
+        pipeline_name: pipeline.name.clone(),
+        status: ProcessStatus::Pending,
+        current_step_index: 0,
+        logs: Vec::new(),
+        started_at: chrono::Utc::now(),
+        completed_at: None,
+        resume_notifier: std::sync::Arc::new(tokio::sync::Notify::new()),
+    };
+
+    let handle = tokio::spawn(async move { engine.run(&pipeline, process, events_tx).await });
 
     // Collect events
     let mut received_events = Vec::new();
@@ -136,10 +149,13 @@ async fn test_pipeline_engine_sequential_execution_with_human_review() {
     assert!(has_human_review, "Should reach HumanReview status");
 
     // 4. Should have log chunks from agent1 execution
-    let has_log_chunks = received_events.iter().any(|e| {
-        matches!(e, Event::ProcessLogChunk { .. })
-    });
-    assert!(has_log_chunks, "Should have log chunks from agent execution");
+    let has_log_chunks = received_events
+        .iter()
+        .any(|e| matches!(e, Event::ProcessLogChunk { .. }));
+    assert!(
+        has_log_chunks,
+        "Should have log chunks from agent execution"
+    );
 
     // Clean up
     drop(events_rx);
@@ -166,9 +182,20 @@ async fn test_pipeline_engine_completes_without_human_review() {
     let (events_tx, mut events_rx) = mpsc::channel(100);
 
     let engine = PipelineEngine::new(agent_manager);
-    let handle = tokio::spawn(async move {
-        engine.run(&pipeline, events_tx).await
-    });
+
+    // Create initial process
+    let process = pk_protocol::Process {
+        id: uuid::Uuid::new_v4(),
+        pipeline_name: pipeline.name.clone(),
+        status: ProcessStatus::Pending,
+        current_step_index: 0,
+        logs: Vec::new(),
+        started_at: chrono::Utc::now(),
+        completed_at: None,
+        resume_notifier: std::sync::Arc::new(tokio::sync::Notify::new()),
+    };
+
+    let handle = tokio::spawn(async move { engine.run(&pipeline, process, events_tx).await });
 
     let mut received_events = Vec::new();
     let timeout_duration = std::time::Duration::from_secs(2);
@@ -184,9 +211,9 @@ async fn test_pipeline_engine_completes_without_human_review() {
     }
 
     // Should have ProcessCompleted event
-    let has_completed = received_events.iter().any(|e| {
-        matches!(e, Event::ProcessCompleted { .. })
-    });
+    let has_completed = received_events
+        .iter()
+        .any(|e| matches!(e, Event::ProcessCompleted { .. }));
     assert!(has_completed, "Pipeline should complete successfully");
 
     // Should NOT have HumanReview status

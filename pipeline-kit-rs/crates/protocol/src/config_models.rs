@@ -3,7 +3,8 @@
 //! This module defines the structure of the global configuration file that
 //! controls project-wide settings for pipeline-kit.
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use ts_rs::TS;
 
 /// Represents global settings from `.pipeline-kit/config.toml`.

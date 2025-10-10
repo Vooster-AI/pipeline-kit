@@ -30,7 +30,6 @@ use tokio::sync::mpsc;
 /// Returns an error if terminal initialization fails or if the event loop
 /// encounters an unrecoverable error.
 pub async fn run_app() -> Result<()> {
-
     // Initialize the terminal
     let mut tui = Tui::init()?;
 

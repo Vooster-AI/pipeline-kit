@@ -3,7 +3,8 @@
 //! This module defines the structure of agent configuration files.
 //! Agents are defined as Markdown files with YAML front matter.
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use ts_rs::TS;
 
 /// Represents an AI agent's configuration and system prompt.

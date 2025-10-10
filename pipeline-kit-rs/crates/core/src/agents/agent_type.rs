@@ -39,7 +39,8 @@ impl AgentType {
         } else if model_lower.starts_with("gpt")
             || model_lower.contains("cursor")
             || model_lower.starts_with("sonnet")
-            || model_lower.starts_with("opus") {
+            || model_lower.starts_with("opus")
+        {
             // Cursor uses GPT models and also has cursor-specific names
             // Also handles sonnet-4.5, opus-4.1 which are Cursor shorthand
             Self::Cursor
@@ -74,9 +75,18 @@ mod tests {
 
     #[test]
     fn test_from_model_name_claude() {
-        assert_eq!(AgentType::from_model_name("claude-sonnet-4.5"), AgentType::Claude);
-        assert_eq!(AgentType::from_model_name("claude-opus-4.1"), AgentType::Claude);
-        assert_eq!(AgentType::from_model_name("Claude-Haiku-3.5"), AgentType::Claude);
+        assert_eq!(
+            AgentType::from_model_name("claude-sonnet-4.5"),
+            AgentType::Claude
+        );
+        assert_eq!(
+            AgentType::from_model_name("claude-opus-4.1"),
+            AgentType::Claude
+        );
+        assert_eq!(
+            AgentType::from_model_name("Claude-Haiku-3.5"),
+            AgentType::Claude
+        );
         assert_eq!(AgentType::from_model_name("claude"), AgentType::Claude);
     }
 
@@ -84,15 +94,24 @@ mod tests {
     fn test_from_model_name_cursor() {
         assert_eq!(AgentType::from_model_name("gpt-5"), AgentType::Cursor);
         assert_eq!(AgentType::from_model_name("gpt-4o"), AgentType::Cursor);
-        assert_eq!(AgentType::from_model_name("cursor-model"), AgentType::Cursor);
+        assert_eq!(
+            AgentType::from_model_name("cursor-model"),
+            AgentType::Cursor
+        );
         assert_eq!(AgentType::from_model_name("sonnet-4.5"), AgentType::Cursor);
         assert_eq!(AgentType::from_model_name("opus-4.1"), AgentType::Cursor);
     }
 
     #[test]
     fn test_from_model_name_gemini() {
-        assert_eq!(AgentType::from_model_name("gemini-2.5-pro"), AgentType::Gemini);
-        assert_eq!(AgentType::from_model_name("gemini-2.5-flash"), AgentType::Gemini);
+        assert_eq!(
+            AgentType::from_model_name("gemini-2.5-pro"),
+            AgentType::Gemini
+        );
+        assert_eq!(
+            AgentType::from_model_name("gemini-2.5-flash"),
+            AgentType::Gemini
+        );
         assert_eq!(AgentType::from_model_name("Gemini-Pro"), AgentType::Gemini);
     }
 
@@ -105,7 +124,10 @@ mod tests {
     #[test]
     fn test_from_model_name_qwen() {
         assert_eq!(AgentType::from_model_name("qwen-coder"), AgentType::Qwen);
-        assert_eq!(AgentType::from_model_name("Qwen3-Coder-Plus"), AgentType::Qwen);
+        assert_eq!(
+            AgentType::from_model_name("Qwen3-Coder-Plus"),
+            AgentType::Qwen
+        );
     }
 
     #[test]

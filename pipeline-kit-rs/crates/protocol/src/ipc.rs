@@ -10,7 +10,8 @@
 //! Communication is asynchronous and channel-based, allowing the UI to
 //! remain responsive while the core processes pipeline executions.
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use std::path::PathBuf;
 use ts_rs::TS;
 use uuid::Uuid;

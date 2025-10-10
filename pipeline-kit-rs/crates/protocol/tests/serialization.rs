@@ -1,6 +1,4 @@
 use pk_protocol::*;
-use serde_json;
-use serde_yaml;
 
 #[test]
 fn test_pipeline_deserialization_from_yaml() {
@@ -27,7 +25,8 @@ sub-agents:
   - "agent-3"
 "#;
 
-    let pipeline: Pipeline = serde_yaml::from_str(yaml_str).expect("Failed to deserialize Pipeline");
+    let pipeline: Pipeline =
+        serde_yaml::from_str(yaml_str).expect("Failed to deserialize Pipeline");
 
     assert_eq!(pipeline.name, "test-pipeline");
     assert_eq!(pipeline.required_reference_file.len(), 2);
@@ -37,8 +36,14 @@ sub-agents:
     assert_eq!(pipeline.sub_agents.len(), 3);
 
     // Verify ProcessStep variants
-    assert_eq!(pipeline.master.process[0], ProcessStep::Agent("agent-1".to_string()));
-    assert!(matches!(pipeline.master.process[2], ProcessStep::HumanReview(_)));
+    assert_eq!(
+        pipeline.master.process[0],
+        ProcessStep::Agent("agent-1".to_string())
+    );
+    assert!(matches!(
+        pipeline.master.process[2],
+        ProcessStep::HumanReview(_)
+    ));
 }
 
 #[test]
@@ -65,11 +70,12 @@ fn test_agent_serialization() {
 #[test]
 fn test_process_status_serialization() {
     let status = ProcessStatus::Running;
-    let json = serde_json::to_value(&status).expect("Failed to serialize ProcessStatus");
+    let json = serde_json::to_value(status).expect("Failed to serialize ProcessStatus");
 
     assert_eq!(json, "RUNNING");
 
-    let deserialized: ProcessStatus = serde_json::from_value(json).expect("Failed to deserialize ProcessStatus");
+    let deserialized: ProcessStatus =
+        serde_json::from_value(json).expect("Failed to deserialize ProcessStatus");
     assert_eq!(deserialized, ProcessStatus::Running);
 }
 
@@ -104,7 +110,8 @@ fn test_global_config_serialization() {
     let config = GlobalConfig { git: true };
 
     let json = serde_json::to_string(&config).expect("Failed to serialize GlobalConfig");
-    let deserialized: GlobalConfig = serde_json::from_str(&json).expect("Failed to deserialize GlobalConfig");
+    let deserialized: GlobalConfig =
+        serde_json::from_str(&json).expect("Failed to deserialize GlobalConfig");
 
     assert_eq!(deserialized.git, config.git);
 }
@@ -125,14 +132,19 @@ fn test_op_enum_serialization() {
 
     let deserialized: Op = serde_json::from_value(json).expect("Failed to deserialize Op");
     match deserialized {
-        Op::StartPipeline { name, reference_file } => {
+        Op::StartPipeline {
+            name,
+            reference_file,
+        } => {
             assert_eq!(name, "test-pipeline");
             assert!(reference_file.is_some());
         }
         _ => panic!("Wrong variant"),
     }
 
-    let pause_op = Op::PauseProcess { process_id: Uuid::new_v4() };
+    let pause_op = Op::PauseProcess {
+        process_id: Uuid::new_v4(),
+    };
     let json = serde_json::to_value(&pause_op).expect("Failed to serialize Op::PauseProcess");
     assert_eq!(json["type"], "pauseProcess");
 }
@@ -170,10 +182,12 @@ fn test_process_step_untagged_serialization() {
 
     // Test HumanReview variant
     let human_review_step = ProcessStep::HumanReview(HumanReviewMarker);
-    let json = serde_json::to_value(&human_review_step).expect("Failed to serialize ProcessStep::HumanReview");
+    let json = serde_json::to_value(&human_review_step)
+        .expect("Failed to serialize ProcessStep::HumanReview");
     assert_eq!(json, "HUMAN_REVIEW");
 
     // Test deserialization of HUMAN_REVIEW
-    let deserialized: ProcessStep = serde_json::from_str("\"HUMAN_REVIEW\"").expect("Failed to deserialize HUMAN_REVIEW");
+    let deserialized: ProcessStep =
+        serde_json::from_str("\"HUMAN_REVIEW\"").expect("Failed to deserialize HUMAN_REVIEW");
     assert!(matches!(deserialized, ProcessStep::HumanReview(_)));
 }
