@@ -8,20 +8,29 @@
     "pipeline-kit": "bin/pipeline-kit.js"
   },
   "scripts": {
-    "postinstall": "bash scripts/install_native_deps.sh"
+    "postinstall": "bash scripts/install_native_deps.sh",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "publish:public": "npm publish --access public"
   },
   "engines": {
     "node": ">=16"
   },
   "files": [
     "bin",
+    "lib",
     "scripts",
     "vendor"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pipeline-kit/pipeline-kit.git",
+    "url": "git+https://github.com/Vooster-AI/pipeline-kit.git",
     "directory": "pipeline-kit-cli"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "keywords": [
     "ai",
@@ -29,5 +38,9 @@
     "pipeline",
     "orchestration",
     "cli"
-  ]
+  ],
+  "devDependencies": {
+    "@vitest/ui": "^3.2.4",
+    "vitest": "^3.2.4"
+  }
 }

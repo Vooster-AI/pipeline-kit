@@ -15,105 +15,53 @@ if [ "${NODE_ENV:-}" = "production" ] || [ "${1:-}" = "--production" ]; then
   MODE="production"
 fi
 
-# Helper function to determine platform name for GitHub Release assets
+# Helper function to determine user-friendly platform name
+# This maps OS and architecture to a simple, user-friendly format
+# Used for both GitHub Release assets and local vendor directory structure
 get_platform_name() {
-  local platform="$1"
-  local arch="$2"
+  local os=$(uname -s)
+  local arch=$(uname -m)
 
-  case "$platform" in
-    linux)
-      case "$arch" in
-        x86_64) echo "linux-x86_64" ;;
-        aarch64|arm64) echo "linux-aarch64" ;;
-        *) return 1 ;;
-      esac
-      ;;
-    darwin)
-      case "$arch" in
-        x86_64) echo "macos-x86_64" ;;
-        arm64) echo "macos-aarch64" ;;
-        *) return 1 ;;
-      esac
-      ;;
-    mingw*|msys*|cygwin*)
-      case "$arch" in
-        x86_64) echo "windows-x86_64" ;;
-        aarch64|arm64) echo "windows-aarch64" ;;
-        *) return 1 ;;
-      esac
-      ;;
-    *)
-      return 1
-      ;;
+  case "$os-$arch" in
+    Darwin-x86_64) echo "macos-x64" ;;
+    Darwin-arm64) echo "macos-arm64" ;;
+    Linux-x86_64) echo "linux-x64" ;;
+    Linux-aarch64) echo "linux-arm64" ;;
+    MINGW*-x86_64|MSYS*-x86_64|CYGWIN*-x86_64) echo "windows-x64" ;;
+    MINGW*-aarch64|MSYS*-aarch64|CYGWIN*-aarch64) echo "windows-arm64" ;;
+    *) echo "unsupported" ;;
   esac
 }
 
-# Detect platform and architecture
-PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')"
-ARCH="$(uname -m)"
+# Get user-friendly platform name
+PLATFORM_NAME=$(get_platform_name)
+if [ "$PLATFORM_NAME" = "unsupported" ]; then
+  echo "Error: Unsupported platform: $(uname -s) ($(uname -m))"
+  echo ""
+  echo "Supported platforms:"
+  echo "  - macOS x64 (Intel)"
+  echo "  - macOS ARM64 (Apple Silicon)"
+  echo "  - Linux x64"
+  echo "  - Linux ARM64"
+  echo "  - Windows x64"
+  echo "  - Windows ARM64"
+  echo ""
+  exit 1
+fi
 
-# Map to Rust target triple
-case "$PLATFORM" in
-  linux)
-    case "$ARCH" in
-      x86_64)
-        TARGET_TRIPLE="x86_64-unknown-linux-musl"
-        ;;
-      aarch64|arm64)
-        TARGET_TRIPLE="aarch64-unknown-linux-musl"
-        ;;
-      *)
-        echo "Unsupported architecture: $ARCH on $PLATFORM"
-        exit 1
-        ;;
-    esac
-    BINARY_NAME="pipeline"
-    ;;
-  darwin)
-    case "$ARCH" in
-      x86_64)
-        TARGET_TRIPLE="x86_64-apple-darwin"
-        ;;
-      arm64)
-        TARGET_TRIPLE="aarch64-apple-darwin"
-        ;;
-      *)
-        echo "Unsupported architecture: $ARCH on $PLATFORM"
-        exit 1
-        ;;
-    esac
-    BINARY_NAME="pipeline"
-    ;;
-  mingw*|msys*|cygwin*)
-    case "$ARCH" in
-      x86_64)
-        TARGET_TRIPLE="x86_64-pc-windows-msvc"
-        ;;
-      aarch64|arm64)
-        TARGET_TRIPLE="aarch64-pc-windows-msvc"
-        ;;
-      *)
-        echo "Unsupported architecture: $ARCH on $PLATFORM"
-        exit 1
-        ;;
-    esac
+# Determine binary name based on platform
+case "$PLATFORM_NAME" in
+  windows-*)
     BINARY_NAME="pipeline.exe"
     ;;
   *)
-    echo "Unsupported platform: $PLATFORM"
-    exit 1
+    BINARY_NAME="pipeline"
     ;;
 esac
 
-ARCH_DIR="$VENDOR_DIR/$TARGET_TRIPLE/pipeline-kit"
-BINARY_DEST="$ARCH_DIR/$BINARY_NAME"
-
-# Get platform name for GitHub Release
-PLATFORM_NAME=$(get_platform_name "$PLATFORM" "$ARCH")
-if [ -z "$PLATFORM_NAME" ]; then
-  echo "Error: Unable to determine platform name for $PLATFORM/$ARCH"
-  exit 1
-fi
+# Use user-friendly platform name for directory structure
+PLATFORM_DIR="$VENDOR_DIR/$PLATFORM_NAME/pipeline-kit"
+BINARY_DEST="$PLATFORM_DIR/$BINARY_NAME"
 
 if [ "$MODE" = "production" ]; then
   # Production mode: download from GitHub Releases
@@ -143,7 +91,6 @@ if [ "$MODE" = "production" ]; then
   echo "  Repository: $REPO"
   echo "  Release: $RELEASE_TAG"
   echo "  Platform: $PLATFORM_NAME"
-  echo "  Target: $TARGET_TRIPLE"
 
   # Create a temporary directory for downloads
   TEMP_DIR=$(mktemp -d)
@@ -233,8 +180,8 @@ if [ "$MODE" = "production" ]; then
 
   # Extract the archive
   echo "  Extracting archive..."
-  mkdir -p "$ARCH_DIR"
-  tar -xzf "$ARCHIVE_PATH" -C "$ARCH_DIR"
+  mkdir -p "$PLATFORM_DIR"
+  tar -xzf "$ARCHIVE_PATH" -C "$PLATFORM_DIR"
 
   # Verify the binary exists
   if [ ! -f "$BINARY_DEST" ]; then
@@ -258,8 +205,9 @@ else
     echo "Development mode: Installing Pipeline Kit binary from local build..."
     echo "  Source: $SOURCE_BINARY"
     echo "  Destination: $BINARY_DEST"
+    echo "  Platform: $PLATFORM_NAME"
 
-    mkdir -p "$ARCH_DIR"
+    mkdir -p "$PLATFORM_DIR"
     cp "$SOURCE_BINARY" "$BINARY_DEST"
     chmod +x "$BINARY_DEST"
 

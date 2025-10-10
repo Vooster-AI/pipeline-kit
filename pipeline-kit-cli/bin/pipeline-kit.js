@@ -12,57 +12,37 @@ const __dirname = path.dirname(__filename);
 
 const { platform, arch } = process;
 
-let targetTriple = null;
-switch (platform) {
-  case "linux":
-  case "android":
-    switch (arch) {
-      case "x64":
-        targetTriple = "x86_64-unknown-linux-musl";
-        break;
-      case "arm64":
-        targetTriple = "aarch64-unknown-linux-musl";
-        break;
-      default:
-        break;
-    }
-    break;
-  case "darwin":
-    switch (arch) {
-      case "x64":
-        targetTriple = "x86_64-apple-darwin";
-        break;
-      case "arm64":
-        targetTriple = "aarch64-apple-darwin";
-        break;
-      default:
-        break;
-    }
-    break;
-  case "win32":
-    switch (arch) {
-      case "x64":
-        targetTriple = "x86_64-pc-windows-msvc";
-        break;
-      case "arm64":
-        targetTriple = "aarch64-pc-windows-msvc";
-        break;
-      default:
-        break;
-    }
-    break;
-  default:
-    break;
-}
+// Map Node.js platform/arch to user-friendly platform names
+// This matches the structure created by install_native_deps.sh
+const platformMap = {
+  'darwin-x64': 'macos-x64',
+  'darwin-arm64': 'macos-arm64',
+  'linux-x64': 'linux-x64',
+  'linux-arm64': 'linux-arm64',
+  'android-arm64': 'linux-arm64', // Android uses Linux binaries
+  'win32-x64': 'windows-x64',
+  'win32-arm64': 'windows-arm64'
+};
 
-if (!targetTriple) {
-  throw new Error(`Unsupported platform: ${platform} (${arch})`);
+const platformKey = `${platform}-${arch}`;
+const platformName = platformMap[platformKey];
+
+if (!platformName) {
+  const supportedPlatforms = Object.keys(platformMap)
+    .filter(key => !key.startsWith('android')) // Don't list android explicitly
+    .map(key => `  - ${key}`)
+    .join('\n');
+
+  throw new Error(
+    `Unsupported platform: ${platform} (${arch})\n\n` +
+    `Supported platforms:\n${supportedPlatforms}`
+  );
 }
 
 const vendorRoot = path.join(__dirname, "..", "vendor");
-const archRoot = path.join(vendorRoot, targetTriple);
+const platformRoot = path.join(vendorRoot, platformName);
 const binaryName = process.platform === "win32" ? "pipeline.exe" : "pipeline";
-const binaryPath = path.join(archRoot, "pipeline-kit", binaryName);
+const binaryPath = path.join(platformRoot, "pipeline-kit", binaryName);
 
 // Development mode fallback: if vendor binary doesn't exist, try local build
 let finalBinaryPath = binaryPath;

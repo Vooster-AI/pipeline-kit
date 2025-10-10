@@ -139,10 +139,10 @@
 - [ ] **Ticket 5.1-Fix.2 완료**
 
 ### Ticket 5.1-Fix.3: 디렉터리 구조 정리
-- [ ] RED: 사용자 친화적 이름 테스트 작성
-- [ ] GREEN: target triple을 `macos-arm64` 등으로 매핑
-- [ ] REFACTOR: `codex-cli` 플랫폼 감지 로직 참고하여 개선
-- [ ] **Ticket 5.1-Fix.3 완료**
+- [x] RED: 사용자 친화적 이름 테스트 작성
+- [x] GREEN: target triple을 `macos-arm64` 등으로 매핑
+- [x] REFACTOR: `codex-cli` 플랫폼 감지 로직 참고하여 개선
+- [x] **Ticket 5.1-Fix.3 완료**
 
 ---
 
@@ -155,6 +155,6 @@
 - **Phase 5**: 1/1 티켓 완료 ✅
 - **Phase 6**: 2/2 티켓 완료 ✅
 - **Phase 7**: 2/2 티켓 완료 ✅
-- **Phase 8**: 0/4 티켓 완료
+- **Phase 8**: 1/4 티켓 완료
 
-**총 진행률**: 14/18 티켓 완료 (77.8%)
+**총 진행률**: 15/18 티켓 완료 (83.3%)
