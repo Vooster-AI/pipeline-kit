@@ -1,0 +1,41 @@
+# https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference#package-ecosystem
+
+version: 2
+updates:
+  # Rust workspace dependencies
+  - package-ecosystem: cargo
+    directory: /pipeline-kit-rs
+    schedule:
+      interval: weekly
+    groups:
+      rust-dependencies:
+        patterns:
+          - "*"
+
+  # TypeScript CLI dependencies
+  - package-ecosystem: npm
+    directory: /pipeline-kit-cli
+    schedule:
+      interval: weekly
+    groups:
+      npm-dependencies:
+        patterns:
+          - "*"
+
+  # Root pnpm workspace
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Rust toolchain
+  - package-ecosystem: rust-toolchain
+    directory: /pipeline-kit-rs
+    schedule:
+      interval: weekly
