@@ -12,28 +12,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      # Rust Setup
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            pipeline-kit-rs/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Install cargo-nextest
-        run: cargo install cargo-nextest --locked || true
-
       # Node.js/pnpm Setup
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -62,10 +40,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      # Rust Verification (follows CLAUDE.md checklist)
-      - name: Run Rust verification
-        run: bash scripts/verify-rust.sh
 
       # TypeScript Tests
       - name: Run TypeScript tests

@@ -52,7 +52,7 @@ jobs:
 
   # --- CI that doesn't need specific targets ---------------------------------
   general:
-    name: Format / etc
+    name: Format / Docs / etc
     runs-on: ubuntu-24.04
     needs: changed
     if: ${{ needs.changed.outputs.rust == 'true' || needs.changed.outputs.workflows == 'true' || github.event_name == 'push' }}
@@ -66,6 +66,8 @@ jobs:
           components: rustfmt
       - name: cargo fmt
         run: cargo fmt -- --config imports_granularity=Item --check
+      - name: cargo doc
+        run: cargo doc --no-deps --all-features
 
   cargo_shear:
     name: cargo shear
