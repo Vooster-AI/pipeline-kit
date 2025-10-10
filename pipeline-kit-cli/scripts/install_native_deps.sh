@@ -83,7 +83,7 @@ if [ "$MODE" = "production" ]; then
   fi
 
   # Get the repository from package.json or use default
-  REPO="${PIPELINE_KIT_REPO:-pipeline-kit/pipeline-kit}"
+  REPO="${PIPELINE_KIT_REPO:-Vooster-AI/pipeline-kit}"
 
   # Get the latest release tag or use a specific one
   RELEASE_TAG="${PIPELINE_KIT_VERSION:-latest}"

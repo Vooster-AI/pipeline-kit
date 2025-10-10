@@ -13,7 +13,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Pipeline Kit Contributors"]
 license = "MIT"
-repository = "https://github.com/yourusername/pipeline-kit"
+repository = "https://github.com/Vooster-AI/pipeline-kit"
 
 [workspace.lints.clippy]
 # Code quality lints (deny level)
