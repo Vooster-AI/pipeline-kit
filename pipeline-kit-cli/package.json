@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
+    "type-check": "tsc --noEmit",
     "publish:public": "npm publish --access public"
   },
   "engines": {
@@ -40,8 +41,10 @@
     "cli"
   ],
   "devDependencies": {
+    "@types/node": "^24.7.1",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
+    "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }
 }
