@@ -91,6 +91,30 @@ pub fn create_test_agent(name: &str) -> Agent {
     }
 }
 
+/// Create a test Agent configuration that will fail.
+#[allow(dead_code)]
+pub fn create_failure_agent(name: &str) -> Agent {
+    Agent {
+        name: name.to_string(),
+        description: format!("Failing test agent {}", name),
+        model: "test-failure-model".to_string(),
+        color: "red".to_string(),
+        system_prompt: "This agent will fail".to_string(),
+    }
+}
+
+/// Create a test Agent configuration that is unavailable.
+#[allow(dead_code)]
+pub fn create_unavailable_agent(name: &str) -> Agent {
+    Agent {
+        name: name.to_string(),
+        description: format!("Unavailable test agent {}", name),
+        model: "test-unavailable-model".to_string(),
+        color: "gray".to_string(),
+        system_prompt: "This agent is unavailable".to_string(),
+    }
+}
+
 /// Create a test Pipeline configuration.
 pub fn create_test_pipeline(name: &str, steps: Vec<ProcessStep>) -> Pipeline {
     Pipeline {
@@ -113,6 +137,7 @@ pub fn create_test_pipeline(name: &str, steps: Vec<ProcessStep>) -> Pipeline {
 }
 
 /// Create a simple pipeline with sequential agent steps.
+#[allow(dead_code)]
 pub fn create_simple_pipeline(name: &str, num_agents: usize) -> Pipeline {
     let steps = (1..=num_agents)
         .map(|i| ProcessStep::Agent(format!("agent-{}", i)))
@@ -121,6 +146,7 @@ pub fn create_simple_pipeline(name: &str, num_agents: usize) -> Pipeline {
 }
 
 /// Create a pipeline with HUMAN_REVIEW steps.
+#[allow(dead_code)]
 pub fn create_pipeline_with_human_review(name: &str) -> Pipeline {
     let steps = vec![
         ProcessStep::Agent("agent-1".to_string()),

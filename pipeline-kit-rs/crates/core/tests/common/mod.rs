@@ -10,7 +10,9 @@ pub mod assertions;
 pub mod fixtures;
 pub mod mock_agents;
 
+#[allow(unused_imports)]
 pub use assertions::*;
+#[allow(unused_imports)]
 pub use fixtures::*;
 #[allow(unused_imports)]
 pub use mock_agents::*;

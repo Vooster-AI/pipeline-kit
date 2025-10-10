@@ -98,7 +98,17 @@ impl AgentFactory {
                 );
                 Ok(Arc::new(MockAgent::success()))
             }
-            AgentType::Mock => Ok(Arc::new(MockAgent::success())),
+            AgentType::Mock => {
+                // Support different mock types for testing based on model name
+                if config.model == "test-failure-model" {
+                    Ok(Arc::new(MockAgent::failing()))
+                } else if config.model == "test-unavailable-model" {
+                    Ok(Arc::new(MockAgent::unavailable()))
+                } else {
+                    // Default to success for "test-model" and others
+                    Ok(Arc::new(MockAgent::success()))
+                }
+            }
         }
     }
 }
