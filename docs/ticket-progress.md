@@ -51,10 +51,10 @@
 - [x] **Ticket 4.1 완료**
 
 ### Ticket 4.2: 대시보드 위젯 구현
-- [ ] RED: 대시보드 위젯 테스트 작성
-- [ ] GREEN: `Process` 테이블 형태 렌더링 구현
-- [ ] REFACTOR: 위젯 코드 정리 및 최적화
-- [ ] **Ticket 4.2 완료**
+- [x] RED: 대시보드 위젯 테스트 작성
+- [x] GREEN: `Process` 테이블 형태 렌더링 구현
+- [x] REFACTOR: 위젯 코드 정리 및 최적화
+- [x] **Ticket 4.2 완료**
 
 ### Ticket 4.3: 프로세스 상세 뷰 위젯 구현
 - [x] RED: 상세 뷰 위젯 테스트 작성
