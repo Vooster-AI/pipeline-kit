@@ -7,11 +7,6 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 /// Errors that can occur during configuration loading.
-///
-/// Note: Large error variants (TomlParse, YamlParse, DirectoryWalk) are intentionally
-/// not boxed because configuration loading happens only once at startup (cold path).
-/// The performance impact of large error types is negligible in this context.
-#[allow(clippy::result_large_err)]
 #[derive(Error, Debug)]
 pub enum ConfigError {
     /// Failed to read a configuration file from disk.

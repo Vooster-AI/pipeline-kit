@@ -5,6 +5,12 @@
 //! - `config.toml`: Global settings
 //! - `agents/*.md`: Agent definitions with YAML front matter
 //! - `pipelines/*.yaml`: Pipeline definitions
+//!
+//! Note: The `result_large_err` lint is suppressed for this module because
+//! configuration loading is a cold path that runs once at startup. Large error
+//! types have negligible performance impact in this context.
+
+#![allow(clippy::result_large_err)]
 
 use crate::config::error::ConfigError;
 use crate::config::error::ConfigResult;
