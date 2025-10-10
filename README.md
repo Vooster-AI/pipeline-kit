@@ -4,6 +4,9 @@ AI agent pipeline orchestration CLI with interactive TUI, built with Rust for pe
 
 [![npm version](https://badge.fury.io/js/pipeline-kit.svg)](https://www.npmjs.com/package/pipeline-kit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/Vooster-AI/pipeline-kit/actions/workflows/rust-ci.yml/badge.svg)](https://github.com/Vooster-AI/pipeline-kit/actions/workflows/rust-ci.yml)
+[![codecov](https://codecov.io/gh/Vooster-AI/pipeline-kit/branch/main/graph/badge.svg)](https://codecov.io/gh/Vooster-AI/pipeline-kit)
+[![Security Audit](https://github.com/Vooster-AI/pipeline-kit/actions/workflows/security.yml/badge.svg)](https://github.com/Vooster-AI/pipeline-kit/actions/workflows/security.yml)
 
 ## Features
 

@@ -9,6 +9,13 @@ pnpm-lock.yaml
 dist/
 *.tsbuildinfo
 
+# Coverage
+lcov.info
+*.profraw
+*.profdata
+coverage/
+target/coverage/
+
 # START Ruler Generated Files
 /.codex/config.toml
 /.codex/config.toml.bak

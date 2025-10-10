@@ -35,14 +35,46 @@
 
 ## Checklist
 
+### Code Quality
+
 - [ ] My code follows the project's coding conventions (see CLAUDE.md)
 - [ ] I have performed a self-review of my own code
 - [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
+- [ ] All crate names use `pk-` prefix (if adding new crates)
+- [ ] Appropriate error handling (`thiserror` for libs, `anyhow` for bins)
+- [ ] No dead code (or properly documented with `#[allow(dead_code)]` and rationale)
+
+### Testing
+
 - [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
+- [ ] New and existing unit tests pass locally: `cargo nextest run --all-features` (or `cargo test`)
+- [ ] TUI changes have snapshot tests (if applicable)
+- [ ] E2E tests updated if pipeline behavior changed
+
+### Documentation
+
+- [ ] I have made corresponding changes to the documentation
+- [ ] Public APIs documented with rustdoc comments
+- [ ] README updated if user-facing features changed
+
+### Verification (Local Checks Before Pushing)
+
+- [ ] Code formatted: `cd pipeline-kit-rs && cargo fmt --all --check`
+- [ ] No clippy warnings: `cd pipeline-kit-rs && cargo clippy --all-targets --all-features -- -D warnings`
+- [ ] Build succeeds: `cd pipeline-kit-rs && cargo build --all-targets --all-features`
+- [ ] TypeScript types regenerated (if protocol changes): `cd pipeline-kit-rs && cargo test --package pk-protocol --lib -- --nocapture`
+
+### CI/CD (Will be verified by GitHub Actions)
+
+- [ ] All CI workflows pass (rust-ci, coverage, security)
+- [ ] Code coverage maintained or improved
+- [ ] No security vulnerabilities detected
+- [ ] Build succeeds on all target platforms
+
+### Dependencies
+
 - [ ] Any dependent changes have been merged and published
+- [ ] No new dependencies with incompatible licenses (GPL-3.0, AGPL-3.0)
 
 ## Related Issues
 

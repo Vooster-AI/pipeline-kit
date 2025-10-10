@@ -196,6 +196,25 @@ jobs:
         env:
           RUST_BACKTRACE: 1
 
+      - name: Generate test report
+        if: always() && steps.test.outcome != 'skipped' && matrix.target == 'x86_64-unknown-linux-gnu'
+        continue-on-error: true
+        run: |
+          cargo nextest run --all-features \
+            --target ${{ matrix.target }} \
+            --profile ci \
+            --no-fail-fast \
+            || true
+
+      - name: Upload test results
+        if: always() && steps.test.outcome != 'skipped' && matrix.target == 'x86_64-unknown-linux-gnu'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.runner }}-${{ matrix.target }}
+          path: |
+            pipeline-kit-rs/target/nextest/ci/junit.xml
+          retention-days: 7
+
       # Fail the job if any of the previous steps failed.
       - name: verify all steps passed
         if: |

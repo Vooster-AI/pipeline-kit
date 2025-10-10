@@ -1,0 +1,33 @@
+# Nextest configuration for pipeline-kit-rs
+#
+# This file configures cargo-nextest test runner behavior.
+# See: https://nexte.st/book/configuration.html
+
+# Default profile (used for local development)
+[profile.default]
+# Continue running tests even if some fail
+fail-fast = false
+# Show output for failing tests immediately
+failure-output = "immediate-final"
+# Don't show output for passing tests
+success-output = "never"
+
+# CI profile (used in GitHub Actions)
+[profile.ci]
+# Never stop early, run all tests to collect complete results
+fail-fast = false
+# Hide output from successful tests to reduce CI log noise
+success-output = "never"
+# Show failure output immediately as tests fail for faster debugging
+failure-output = "immediate-final"
+# Number of retries for flaky tests (0 = no retries in CI)
+retries = 0
+
+# JUnit XML output configuration for CI test reporting
+[profile.ci.junit]
+# Path where JUnit XML report will be generated
+# This is uploaded as an artifact in GitHub Actions for test result visualization
+path = "target/nextest/ci/junit.xml"
+# Store output for failed tests in the XML report
+store-success-output = false
+store-failure-output = true

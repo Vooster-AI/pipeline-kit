@@ -30,7 +30,7 @@ use uuid::Uuid;
 pub struct StateManager {
     /// Registry of all active processes, indexed by their UUID.
     ///
-    /// Uses Arc<Mutex<Process>> for thread-safe access across async tasks.
+    /// Uses `Arc<Mutex<Process>>` for thread-safe access across async tasks.
     processes: Arc<Mutex<HashMap<Uuid, Arc<Mutex<Process>>>>>,
 
     /// Registry of task handles for background execution, indexed by process UUID.
