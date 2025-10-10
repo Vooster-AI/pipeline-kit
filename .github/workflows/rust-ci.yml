@@ -78,6 +78,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@1.89
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: cargo-shear-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-shear
