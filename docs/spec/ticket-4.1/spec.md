@@ -14,6 +14,20 @@ TUI의 기본 레이아웃, 메인 이벤트 루프, 그리고 `core`와의 통�
 - `codex-rs/tui/src/app.rs`의 `App::run` 메서드와 이벤트 처리 루프(`select!`)를 핵심 로직으로 참고하세요.
 - `codex-rs/tui/src/tui.rs`에서 터미널 초기화 및 복원 로직을 가져옵니다.
 
+## Hints
+
+-   `codex-rs/tui/src/app.rs`와 `tui.rs`를 거의 그대로 가져와서 시작하세요. `App` 구조체의 상태를 `pipeline-kit`에 맞게 (예: `Vec<Process>`, 현재 선택된 프로세스 등) 수정하는 것이 핵심입니다.
+-   `App` 구조체는 TUI의 전체 상태를 보유해야 합니다:
+    ```rust
+    pub struct App {
+        pub processes: Vec<Process>,
+        pub selected_index: usize,
+        pub command_input: String,
+        // ... 기타 상태
+    }
+    ```
+-   메인 이벤트 루프는 `tokio::select!`를 사용하여 여러 이벤트 소스(키보드 입력, core로부터의 이벤트)를 동시에 처리해야 합니다.
+
 ## Acceptance Tests (TDD Process)
 
 1.  **RED**: `App::run`을 호출하는 테스트를 작성합니다. `TestBackend`를 사용하여 UI가 렌더링되는지 확인하지만, 아직 위젯이 없으므로 빈 화면이어야 합니다.

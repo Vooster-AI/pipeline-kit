@@ -9,6 +9,38 @@
 - `codex-cli/` 디렉터리의 모든 파일을 거의 그대로 복제하고, 'codex'를 'pipeline-kit'으로 변경하는 작업이 주가 됩니다.
 - `codex-cli/bin/codex.js`와 `codex-cli/scripts/install_native_deps.sh`를 주의 깊게 분석하세요.
 
+## Hints
+
+-   `codex-cli/bin/codex.js`의 플랫폼 탐지 로직과 `child_process.spawn` 호출 부분을 집중적으로 참고하세요. 이 파일은 OS와 아키텍처를 감지하여 올바른 바이너리 경로를 찾는 완전한 예제를 제공합니다.
+-   GitHub Release에서 바이너리를 다운로드하는 로직은 `codex-cli/scripts/install_native_deps.sh`에 있습니다. 이 스크립트를 `pipeline-kit`용으로 복제하고 다음을 수정하세요:
+    - 레포지토리 이름: `pipeline-kit/pipeline-kit`
+    - 바이너리 이름: `pipeline-kit`
+    - 다운로드 경로: `~/.pipeline-kit/bin/`
+-   `package.json`의 핵심 설정:
+    ```json
+    {
+      "name": "pipeline-kit",
+      "version": "0.1.0",
+      "bin": {
+        "pipeline-kit": "./bin/pipeline-kit.js"
+      },
+      "scripts": {
+        "postinstall": "bash scripts/install_native_deps.sh"
+      }
+    }
+    ```
+-   `bin/pipeline-kit.js`의 플랫폼별 바이너리 경로 매핑:
+    ```javascript
+    const PLATFORM_MAP = {
+      'darwin-x64': 'macos-x64/pipeline-kit',
+      'darwin-arm64': 'macos-arm64/pipeline-kit',
+      'linux-x64': 'linux-x64/pipeline-kit',
+      'linux-arm64': 'linux-arm64/pipeline-kit',
+      'win32-x64': 'windows-x64/pipeline-kit.exe',
+    };
+    ```
+-   개발 모드와 프로덕션 모드를 구분하여, 로컬 개발 시에는 `../pipeline-kit-rs/target/release/pk-cli` 경로를 사용하도록 fallback 로직을 추가하세요.
+
 ## Acceptance Tests (TDD Process)
 
 1.  **RED**: `pipeline-kit-cli` 디렉터리에서 `npm install`을 실행하고, `bin/pipeline-kit` 스크립트를 실행했을 때, "바이너리를 찾을 수 없음" 에러가 발생하는 것을 확인합니다.
