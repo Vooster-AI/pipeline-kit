@@ -37,15 +37,11 @@ yarn global add pipeline-kit
 After installation, the `pipeline-kit` command will be available globally:
 
 ```bash
-# Initialize a new project
-pipeline-kit init
-
-# Run a pipeline
-pipeline-kit run my-pipeline
-
-# Interactive mode with TUI
+# Launch interactive TUI
 pipeline-kit
 ```
+
+The TUI (Terminal User Interface) provides an interactive environment for managing and running AI agent pipelines.
 
 ## Features
 
@@ -133,9 +129,16 @@ Pipeline and agent configurations are stored in the `.pipeline-kit/` directory:
 
 ```
 .pipeline-kit/
-├── pipelines/    # YAML pipeline definitions
-└── agents/       # Markdown agent configurations
+├── config.toml   # Global configuration
+├── agents/       # Agent definitions (Markdown with YAML front matter)
+└── pipelines/    # Pipeline definitions (YAML)
 ```
+
+### Configuration Files
+
+- **config.toml**: Global settings (e.g., git integration)
+- **agents/*.md**: Agent definitions with YAML front matter containing metadata (name, model, description) and system prompts in the markdown body
+- **pipelines/*.yaml**: Pipeline definitions specifying the orchestration flow, required files, and agent assignments
 
 See the [main repository](https://github.com/Vooster-AI/pipeline-kit) for detailed configuration documentation.
 
