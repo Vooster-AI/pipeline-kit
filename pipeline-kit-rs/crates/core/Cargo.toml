@@ -6,3 +6,19 @@ authors = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
 description = "Core pipeline engine and agent management"
+
+[dependencies]
+pk-protocol = { path = "../protocol" }
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+toml = "0.8"
+gray_matter = "0.2"
+thiserror = "1.0"
+walkdir = "2.4"
+async-trait = "0.1"
+tokio-stream = "0.1"
+
+[dev-dependencies]
+tempfile = "3.10"
+tokio = { version = "1.40", features = ["full"] }
+tokio-test = "0.4"
