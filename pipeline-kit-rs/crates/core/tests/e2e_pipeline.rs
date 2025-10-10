@@ -638,3 +638,289 @@ async fn test_multiple_human_review_steps() {
 
     println!("✅ Multiple HUMAN_REVIEW test passed");
 }
+
+/// Priority 2.2.1: Nonexistent agent fails pipeline
+///
+/// Acceptance criteria:
+/// 1. Pipeline with undefined agent name fails
+/// 2. AgentManager returns appropriate error
+/// 3. ProcessError event is emitted
+/// 4. Process status transitions to Failed
+/// 5. Error message indicates agent not found
+#[tokio::test]
+async fn test_nonexistent_agent_fails_pipeline() {
+    // Given: A pipeline referencing a non-existent agent
+    // Only register agent-1, but pipeline requests agent-2
+    let agents = vec![create_test_agent("agent-1")];
+    let agent_manager = AgentManager::new(agents);
+
+    let steps = vec![
+        ProcessStep::Agent("agent-1".to_string()),
+        ProcessStep::Agent("nonexistent-agent".to_string()), // This doesn't exist
+        ProcessStep::Agent("agent-3".to_string()),
+    ];
+    let pipeline = create_test_pipeline("missing-agent-pipeline", steps);
+
+    // When: Execute the pipeline
+    let (events_tx, mut events_rx) = mpsc::channel(100);
+    let engine = PipelineEngine::new(agent_manager);
+
+    let process = create_test_process("missing-agent-pipeline", ProcessStatus::Pending);
+
+    tokio::spawn(async move {
+        let _ = engine.run(&pipeline, process, events_tx).await;
+    });
+
+    // Then: Collect and verify events
+    let events = collect_events_until_timeout(&mut events_rx, Duration::from_secs(5)).await;
+
+    println!(
+        "📊 Received {} events for missing agent pipeline",
+        events.len()
+    );
+    for (i, event) in events.iter().enumerate() {
+        println!("  Event {}: {:?}", i + 1, event);
+    }
+
+    // Should have ProcessStarted
+    assert!(
+        assert_has_process_started(&events),
+        "Should start the pipeline"
+    );
+
+    // Should transition to Failed status
+    assert!(
+        assert_has_status_update(&events, ProcessStatus::Failed),
+        "Should transition to Failed status when agent not found"
+    );
+
+    // Should have ProcessError event with agent not found message
+    let error_events: Vec<String> = events
+        .iter()
+        .filter_map(|e| match e {
+            Event::ProcessError { error, .. } => Some(error.clone()),
+            _ => None,
+        })
+        .collect();
+
+    assert!(!error_events.is_empty(), "Should emit ProcessError event");
+
+    let error_message = &error_events[0];
+    assert!(
+        error_message.contains("nonexistent-agent")
+            || error_message.contains("not found")
+            || error_message.contains("not available"),
+        "Error message should indicate agent not found: {}",
+        error_message
+    );
+
+    // Should NOT complete successfully
+    assert!(
+        !assert_has_process_completed(&events),
+        "Should NOT complete when agent is missing"
+    );
+
+    // agent-1 should have executed (before the error)
+    let logs: Vec<String> = events
+        .iter()
+        .filter_map(|e| match e {
+            Event::ProcessLogChunk { content, .. } => Some(content.clone()),
+            _ => None,
+        })
+        .collect();
+
+    let has_agent1_log = logs.iter().any(|log| log.contains("agent-1"));
+    assert!(has_agent1_log, "Agent-1 should have executed successfully");
+
+    // agent-3 should NOT have been reached
+    let has_agent3_log = logs.iter().any(|log| log.contains("agent-3"));
+    assert!(
+        !has_agent3_log,
+        "Agent-3 should NOT execute after missing agent error"
+    );
+
+    println!("✅ Nonexistent agent failure test passed");
+}
+
+/// Priority 2.3.2: Agent failure after HUMAN_REVIEW
+///
+/// Acceptance criteria:
+/// 1. Pipeline executes successfully until HUMAN_REVIEW
+/// 2. After resume, agent failure is handled correctly
+/// 3. Logs from pre-review steps are preserved
+/// 4. Pipeline stops at failure point
+/// 5. Process ends in Failed status
+#[tokio::test]
+async fn test_agent_failure_after_human_review() {
+    // Given: A pipeline with HUMAN_REVIEW followed by a failing agent
+    let agents = vec![
+        create_test_agent("agent-1"),
+        create_test_agent("agent-2"),
+        create_failure_agent("failing-agent"),
+    ];
+    let agent_manager = AgentManager::new(agents);
+
+    let steps = vec![
+        ProcessStep::Agent("agent-1".to_string()),
+        ProcessStep::HumanReview(pk_protocol::pipeline_models::HumanReviewMarker),
+        ProcessStep::Agent("agent-2".to_string()),
+        ProcessStep::Agent("failing-agent".to_string()),
+    ];
+    let pipeline = create_test_pipeline("review-then-fail-pipeline", steps);
+
+    // When: Start pipeline via StateManager
+    let (events_tx, mut events_rx) = mpsc::channel(100);
+    let state_manager = StateManager::new(agent_manager, events_tx);
+
+    let process_id = state_manager.start_pipeline(pipeline).await;
+
+    // Wait for HUMAN_REVIEW status
+    let mut human_review_reached = false;
+    let timeout = Duration::from_secs(3);
+
+    let mut collected_events = Vec::new();
+    let start = tokio::time::Instant::now();
+
+    while start.elapsed() < timeout {
+        if let Ok(Some(event)) =
+            tokio::time::timeout(Duration::from_millis(100), events_rx.recv()).await
+        {
+            let is_human_review = matches!(
+                &event,
+                Event::ProcessStatusUpdate {
+                    status: ProcessStatus::HumanReview,
+                    ..
+                }
+            );
+            collected_events.push(event);
+
+            if is_human_review {
+                human_review_reached = true;
+                break;
+            }
+        }
+    }
+
+    assert!(
+        human_review_reached,
+        "Should reach HUMAN_REVIEW before failure"
+    );
+
+    println!("📊 Events before resume: {} events", collected_events.len());
+
+    // Resume and wait for failure
+    state_manager
+        .resume_process_by_id(process_id)
+        .await
+        .unwrap();
+
+    // Wait for failure
+    let mut failed = false;
+    let start = tokio::time::Instant::now();
+
+    while start.elapsed() < timeout {
+        if let Ok(Some(event)) =
+            tokio::time::timeout(Duration::from_millis(100), events_rx.recv()).await
+        {
+            let is_failed = matches!(
+                &event,
+                Event::ProcessStatusUpdate {
+                    status: ProcessStatus::Failed,
+                    ..
+                }
+            ) || matches!(&event, Event::ProcessError { .. });
+
+            collected_events.push(event);
+
+            if is_failed {
+                failed = true;
+                // Continue collecting a bit more to get full error events
+                tokio::time::sleep(Duration::from_millis(50)).await;
+                while let Ok(event) = events_rx.try_recv() {
+                    collected_events.push(event);
+                }
+                break;
+            }
+        }
+    }
+
+    println!(
+        "📊 Total events after failure: {} events",
+        collected_events.len()
+    );
+    for (i, event) in collected_events.iter().enumerate() {
+        println!("  Event {}: {:?}", i + 1, event);
+    }
+
+    assert!(failed, "Pipeline should fail after resume");
+
+    // Verify ProcessResumed event was emitted
+    let has_resumed = collected_events
+        .iter()
+        .any(|e| matches!(e, Event::ProcessResumed { .. }));
+    assert!(has_resumed, "Should emit ProcessResumed event");
+
+    // Verify Failed status
+    assert!(
+        assert_has_status_update(&collected_events, ProcessStatus::Failed),
+        "Should transition to Failed status"
+    );
+
+    // Verify ProcessError event
+    let has_error = collected_events
+        .iter()
+        .any(|e| matches!(e, Event::ProcessError { .. }));
+    assert!(has_error, "Should emit ProcessError event");
+
+    // Should NOT complete successfully
+    assert!(
+        !assert_has_process_completed(&collected_events),
+        "Should NOT complete after failure"
+    );
+
+    // Verify logs from before and after HUMAN_REVIEW
+    let logs: Vec<String> = collected_events
+        .iter()
+        .filter_map(|e| match e {
+            Event::ProcessLogChunk { content, .. } => Some(content.clone()),
+            _ => None,
+        })
+        .collect();
+
+    println!("📝 Collected logs:");
+    for (i, log) in logs.iter().enumerate() {
+        println!("  Log {}: {}", i + 1, log);
+    }
+
+    // agent-1 logs should be preserved (before HUMAN_REVIEW)
+    let has_agent1_log = logs.iter().any(|log| log.contains("agent-1"));
+    assert!(
+        has_agent1_log,
+        "Logs from agent-1 (before HUMAN_REVIEW) should be preserved"
+    );
+
+    // agent-2 logs should exist (after resume, before failure)
+    let has_agent2_log = logs.iter().any(|log| log.contains("agent-2"));
+    assert!(
+        has_agent2_log,
+        "Agent-2 should execute successfully after resume"
+    );
+
+    // failing-agent should have started
+    let has_failing_agent_log = logs.iter().any(|log| log.contains("failing-agent"));
+    assert!(
+        has_failing_agent_log,
+        "Failing agent should have been attempted"
+    );
+
+    // Verify final process state
+    let final_process = state_manager.get_process(process_id).await;
+    assert!(final_process.is_some(), "Process should exist");
+    assert_eq!(
+        final_process.unwrap().status,
+        ProcessStatus::Failed,
+        "Process should be in Failed state"
+    );
+
+    println!("✅ Agent failure after HUMAN_REVIEW test passed");
+}
