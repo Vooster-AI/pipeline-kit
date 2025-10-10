@@ -2,3 +2,7 @@
 name = "pk-core"
 version = { workspace = true }
 edition = { workspace = true }
+authors = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+description = "Core pipeline engine and agent management"

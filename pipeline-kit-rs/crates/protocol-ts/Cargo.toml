@@ -2,3 +2,7 @@
 name = "pk-protocol-ts"
 version = { workspace = true }
 edition = { workspace = true }
+authors = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+description = "TypeScript type generator for pk-protocol"

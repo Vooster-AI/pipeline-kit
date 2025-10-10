@@ -2,3 +2,7 @@
 name = "pk-protocol"
 version = { workspace = true }
 edition = { workspace = true }
+authors = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+description = "Shared protocol definitions for pipeline-kit"

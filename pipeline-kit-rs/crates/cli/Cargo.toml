@@ -2,6 +2,10 @@
 name = "pk-cli"
 version = { workspace = true }
 edition = { workspace = true }
+authors = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+description = "CLI entry point for pipeline-kit"
 
 [[bin]]
 name = "pipeline"

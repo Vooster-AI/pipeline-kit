@@ -6,12 +6,42 @@ members = [
     "crates/protocol-ts",
     "crates/tui",
 ]
-resolver = "2" # Use the modern resolver
+resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
-edition = "2021" # Or "2024" if your toolchain supports it
+edition = "2021"
+authors = ["Pipeline Kit Contributors"]
+license = "MIT"
+repository = "https://github.com/yourusername/pipeline-kit"
 
 [workspace.lints.clippy]
-# Reference codex-rs/clippy.toml for useful lints
+# Code quality lints (deny level)
+expect_used = "deny"
 unwrap_used = "deny"
+identity_op = "deny"
+manual_clamp = "deny"
+manual_filter = "deny"
+manual_find = "deny"
+manual_flatten = "deny"
+manual_map = "deny"
+manual_memcpy = "deny"
+manual_ok_or = "deny"
+manual_range_contains = "deny"
+manual_retain = "deny"
+manual_strip = "deny"
+manual_unwrap_or = "deny"
+needless_borrow = "deny"
+needless_borrowed_reference = "deny"
+needless_collect = "deny"
+needless_late_init = "deny"
+needless_option_as_deref = "deny"
+needless_question_mark = "deny"
+redundant_clone = "deny"
+redundant_closure = "deny"
+redundant_closure_for_method_calls = "deny"
+trivially_copy_pass_by_ref = "deny"
+uninlined_format_args = "deny"
+unnecessary_filter_map = "deny"
+unnecessary_lazy_evaluations = "deny"
+unnecessary_to_owned = "deny"
