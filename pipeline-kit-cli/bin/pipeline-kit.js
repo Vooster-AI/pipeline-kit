@@ -5,6 +5,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { getPlatformName, getBinaryName, getVendorBinaryPath, getDevBinaryPath } from "../lib/platform.js";
 
 // __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -12,22 +13,12 @@ const __dirname = path.dirname(__filename);
 
 const { platform, arch } = process;
 
-// Map Node.js platform/arch to user-friendly platform names
-// This matches the structure created by install_native_deps.sh
-const platformMap = {
-  'darwin-x64': 'macos-x64',
-  'darwin-arm64': 'macos-arm64',
-  'linux-x64': 'linux-x64',
-  'linux-arm64': 'linux-arm64',
-  'android-arm64': 'linux-arm64', // Android uses Linux binaries
-  'win32-x64': 'windows-x64',
-  'win32-arm64': 'windows-arm64'
-};
-
-const platformKey = `${platform}-${arch}`;
-const platformName = platformMap[platformKey];
+// Get platform name using the platform library
+const platformName = getPlatformName(platform, arch);
 
 if (!platformName) {
+  // Generate list of supported platforms for error message
+  const { platformMap } = await import("../lib/platform.js");
   const supportedPlatforms = Object.keys(platformMap)
     .filter(key => !key.startsWith('android')) // Don't list android explicitly
     .map(key => `  - ${key}`)
@@ -39,23 +30,17 @@ if (!platformName) {
   );
 }
 
+// Construct paths using the platform library
 const vendorRoot = path.join(__dirname, "..", "vendor");
-const platformRoot = path.join(vendorRoot, platformName);
-const binaryName = process.platform === "win32" ? "pipeline.exe" : "pipeline";
-const binaryPath = path.join(platformRoot, "pipeline-kit", binaryName);
+const binaryName = getBinaryName(platform);
+const binaryPath = getVendorBinaryPath(vendorRoot, platformName, binaryName);
 
 // Development mode fallback: if vendor binary doesn't exist, try local build
 let finalBinaryPath = binaryPath;
 if (!existsSync(binaryPath)) {
-  const devBinaryPath = path.join(
-    __dirname,
-    "..",
-    "..",
-    "pipeline-kit-rs",
-    "target",
-    "release",
-    binaryName
-  );
+  const cliDir = path.join(__dirname, "..");
+  const devBinaryPath = getDevBinaryPath(cliDir, binaryName);
+
   if (existsSync(devBinaryPath)) {
     finalBinaryPath = devBinaryPath;
   } else {

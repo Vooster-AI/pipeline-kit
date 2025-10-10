@@ -95,3 +95,17 @@ describe('getBinaryName', () => {
     expect(getBinaryName('sunos')).toBe('pipeline');
   });
 });
+
+describe('getTargetTriple (legacy)', () => {
+  it('should return correct triple for android platforms', () => {
+    expect(getTargetTriple('android', 'x64')).toBe('x86_64-unknown-linux-musl');
+    expect(getTargetTriple('android', 'arm64')).toBe('aarch64-unknown-linux-musl');
+  });
+
+  it('should maintain backward compatibility with target triple naming', () => {
+    // Verify the legacy function still works
+    expect(getTargetTriple('darwin', 'arm64')).toBe('aarch64-apple-darwin');
+    expect(getTargetTriple('linux', 'x64')).toBe('x86_64-unknown-linux-musl');
+    expect(getTargetTriple('win32', 'x64')).toBe('x86_64-pc-windows-msvc');
+  });
+});

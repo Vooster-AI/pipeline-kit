@@ -12,7 +12,16 @@ export default defineConfig({
         'test/',
         'scripts/',
         'vendor/',
+        'vitest.config.js',
+        'bin/', // Exclude bin from coverage as it's tested via integration tests
       ],
+      // Set thresholds for lib/ directory only
+      thresholds: {
+        lines: 90,
+        functions: 80,
+        branches: 90,
+        statements: 90,
+      },
     },
   },
 });

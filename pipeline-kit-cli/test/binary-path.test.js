@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getVendorBinaryPath, getDevBinaryPath, getPlatformName, platformMap } from '../lib/platform.js';
+import { getVendorBinaryPath, getVendorBinaryPathLegacy, getDevBinaryPath, getPlatformName, platformMap } from '../lib/platform.js';
 import path from 'path';
 
 describe('getPlatformName', () => {
@@ -169,5 +169,27 @@ describe('platformMap export', () => {
     expect(platformMap['win32-x64']).toBe('windows-x64');
     expect(platformMap['win32-arm64']).toBe('windows-arm64');
     expect(platformMap['android-arm64']).toBe('linux-arm64');
+  });
+});
+
+describe('getVendorBinaryPathLegacy (backward compatibility)', () => {
+  it('should construct correct path using target triple', () => {
+    const vendorRoot = '/fake/vendor';
+    const targetTriple = 'x86_64-apple-darwin';
+    const binaryName = 'pipeline';
+
+    const result = getVendorBinaryPathLegacy(vendorRoot, targetTriple, binaryName);
+
+    expect(result).toBe(path.join('/fake/vendor', 'x86_64-apple-darwin', 'pipeline-kit', 'pipeline'));
+  });
+
+  it('should work with different target triples', () => {
+    const vendorRoot = '/vendor';
+
+    const linux = getVendorBinaryPathLegacy(vendorRoot, 'x86_64-unknown-linux-musl', 'pipeline');
+    expect(linux).toContain('x86_64-unknown-linux-musl');
+
+    const windows = getVendorBinaryPathLegacy(vendorRoot, 'x86_64-pc-windows-msvc', 'pipeline.exe');
+    expect(windows).toContain('x86_64-pc-windows-msvc');
   });
 });
