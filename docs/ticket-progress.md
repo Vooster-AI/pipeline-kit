@@ -159,10 +159,10 @@
 - [ ] **Ticket 3.1-Fix.2 완료**
 
 ### Ticket 3.1-Fix.3: `kill_process` 태스크 취소 로직
-- [ ] RED: 태스크 취소 테스트 작성 및 실패 확인
-- [ ] GREEN: `JoinHandle.abort()` 호출 구현
-- [ ] REFACTOR: 리소스 정리 로직 개선
-- [ ] **Ticket 3.1-Fix.3 완료**
+- [x] RED: 태스크 취소 테스트 작성 및 실패 확인
+- [x] GREEN: `JoinHandle.abort()` 호출 구현
+- [x] REFACTOR: 리소스 정리 로직 개선
+- [x] **Ticket 3.1-Fix.3 완료**
 
 ### Ticket 5.1-Fix.2: TDD 테스트 추가
 - [x] RED: 플랫폼 바이너리 경로 테스트 작성

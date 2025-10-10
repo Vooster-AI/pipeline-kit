@@ -75,9 +75,7 @@ mod tests {
         let agent = MockAgent::success();
         assert!(agent.check_availability().await);
 
-        let context = ExecutionContext {
-            instruction: "test".to_string(),
-        };
+        let context = ExecutionContext::new("test".to_string());
 
         let mut stream = agent.execute(&context).await.unwrap();
         let mut events = Vec::new();
@@ -97,9 +95,7 @@ mod tests {
         let agent = MockAgent::unavailable();
         assert!(!agent.check_availability().await);
 
-        let context = ExecutionContext {
-            instruction: "test".to_string(),
-        };
+        let context = ExecutionContext::new("test".to_string());
 
         let result = agent.execute(&context).await;
         assert!(result.is_err());
@@ -113,9 +109,7 @@ mod tests {
         let agent = MockAgent::failing();
         assert!(agent.check_availability().await);
 
-        let context = ExecutionContext {
-            instruction: "test".to_string(),
-        };
+        let context = ExecutionContext::new("test".to_string());
 
         let stream = agent.execute(&context).await.unwrap();
         let events: Vec<_> = stream.collect().await;
@@ -134,9 +128,7 @@ mod tests {
         ];
 
         let agent = MockAgent::new(true, custom_events);
-        let context = ExecutionContext {
-            instruction: "test".to_string(),
-        };
+        let context = ExecutionContext::new("test".to_string());
 
         let stream = agent.execute(&context).await.unwrap();
         let events: Vec<_> = stream.collect().await;

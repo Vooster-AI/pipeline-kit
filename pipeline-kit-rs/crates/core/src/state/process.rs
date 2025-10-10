@@ -5,7 +5,8 @@
 
 use pk_protocol::ipc::Event;
 use pk_protocol::process_models::{Process, ProcessStatus};
-use tokio::sync::mpsc::Sender;
+use std::sync::Arc;
+use tokio::sync::{mpsc::Sender, Notify};
 use uuid::Uuid;
 
 /// Create a new Process with Pending status.
@@ -26,6 +27,7 @@ pub fn create_process(pipeline_name: String) -> Process {
         started_at: chrono::Utc::now(),
         completed_at: None,
         logs: Vec::new(),
+        resume_notifier: Arc::new(Notify::new()),
     }
 }
 
@@ -86,6 +88,10 @@ pub async fn pause_process(process: &mut Process, events_tx: &Sender<Event>) {
 
 /// Resume from Paused or HumanReview status to Running.
 ///
+/// This function transitions the process back to Running status,
+/// emits the appropriate events, and signals the resume_notifier
+/// to wake up the waiting PipelineEngine task.
+///
 /// # Arguments
 ///
 /// * `process` - The process to resume
@@ -99,6 +105,16 @@ pub async fn resume_process(process: &mut Process, events_tx: &Sender<Event>) {
             step_index: process.current_step_index,
         })
         .await;
+
+    // Emit ProcessResumed event
+    let _ = events_tx
+        .send(Event::ProcessResumed {
+            process_id: process.id,
+        })
+        .await;
+
+    // Signal the resume notifier to wake up the waiting PipelineEngine
+    process.resume_notifier.notify_one();
 }
 
 /// Mark the process as completed and emit event.
@@ -171,6 +187,28 @@ pub async fn log_to_process(process: &mut Process, events_tx: &Sender<Event>, me
 /// * `process` - The process to advance
 pub fn advance_step(process: &mut Process) {
     process.current_step_index += 1;
+}
+
+/// Mark the process as killed and emit event.
+///
+/// # Arguments
+///
+/// * `process` - The process to kill
+/// * `events_tx` - Channel to send killed event
+pub async fn kill_process_state(process: &mut Process, events_tx: &Sender<Event>) {
+    process.status = ProcessStatus::Killed;
+    let _ = events_tx
+        .send(Event::ProcessStatusUpdate {
+            process_id: process.id,
+            status: process.status,
+            step_index: process.current_step_index,
+        })
+        .await;
+    let _ = events_tx
+        .send(Event::ProcessKilled {
+            process_id: process.id,
+        })
+        .await;
 }
 
 #[cfg(test)]

@@ -7,6 +7,7 @@
 //! - Managing the lifecycle of agent instances
 
 use crate::agents::base::{Agent, AgentError, AgentEvent, ExecutionContext};
+use crate::agents::factory::AgentFactory;
 use pk_protocol::agent_models;
 use std::collections::HashMap;
 use std::pin::Pin;
@@ -36,16 +37,24 @@ impl AgentManager {
     ///
     /// # Note
     ///
-    /// This is a placeholder implementation. Future tickets will add
-    /// support for real agent adapters (Claude CLI, Cursor Agent, etc.).
+    /// Uses `AgentFactory` to create appropriate agent adapters based on
+    /// the model name in the configuration.
     pub fn new(configs: Vec<agent_models::Agent>) -> Self {
         let mut agents: HashMap<String, Arc<dyn Agent>> = HashMap::new();
 
-        // For now, create MockAgent instances for each config
-        // TODO: Implement factory pattern to create actual agents based on config
+        // Use AgentFactory to create appropriate adapters
         for config in configs {
-            let mock_agent = crate::agents::adapters::MockAgent::success();
-            agents.insert(config.name.clone(), Arc::new(mock_agent));
+            match AgentFactory::create(&config) {
+                Ok(agent) => {
+                    agents.insert(config.name.clone(), agent);
+                }
+                Err(e) => {
+                    eprintln!(
+                        "Warning: Failed to create agent '{}': {}. Skipping.",
+                        config.name, e
+                    );
+                }
+            }
         }
 
         Self {

@@ -141,4 +141,16 @@ pub enum Event {
         process_id: Uuid,
         error: String,
     },
+
+    /// A process was killed by user request.
+    ProcessKilled {
+        #[ts(type = "string")]
+        process_id: Uuid,
+    },
+
+    /// A process was resumed from paused state.
+    ProcessResumed {
+        #[ts(type = "string")]
+        process_id: Uuid,
+    },
 }

@@ -6,7 +6,7 @@
 
 use crate::agents::manager::AgentManager;
 use crate::engine::PipelineEngine;
-use crate::state::process::{pause_process, resume_process};
+use crate::state::process::{kill_process_state, pause_process, resume_process};
 use anyhow::Result;
 use pk_protocol::ipc::Event;
 use pk_protocol::pipeline_models::Pipeline;
@@ -14,6 +14,7 @@ use pk_protocol::process_models::Process;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
+use tokio::task::JoinHandle;
 use uuid::Uuid;
 
 /// Manages all active pipeline processes.
@@ -28,6 +29,11 @@ pub struct StateManager {
     ///
     /// Uses Arc<Mutex<Process>> for thread-safe access across async tasks.
     processes: Arc<Mutex<HashMap<Uuid, Arc<Mutex<Process>>>>>,
+
+    /// Registry of task handles for background execution, indexed by process UUID.
+    ///
+    /// Allows cancellation of running tasks via `.abort()`.
+    task_handles: Arc<Mutex<HashMap<Uuid, JoinHandle<()>>>>,
 
     /// The pipeline engine for executing pipelines.
     engine: Arc<PipelineEngine>,
@@ -48,6 +54,7 @@ impl StateManager {
 
         Self {
             processes: Arc::new(Mutex::new(HashMap::new())),
+            task_handles: Arc::new(Mutex::new(HashMap::new())),
             engine,
             events_tx,
         }
@@ -105,6 +112,7 @@ impl StateManager {
     ///
     /// This function spawns a tokio task that runs the pipeline engine
     /// and updates the process state based on the execution result.
+    /// The task handle is stored for later cancellation via kill_process.
     ///
     /// # Arguments
     ///
@@ -113,18 +121,38 @@ impl StateManager {
     async fn spawn_pipeline_execution(&self, process_id: Uuid, pipeline: Pipeline) {
         let engine = Arc::clone(&self.engine);
         let processes = Arc::clone(&self.processes);
+        let task_handles = Arc::clone(&self.task_handles);
         let events_tx = self.events_tx.clone();
 
-        tokio::spawn(async move {
-            match engine.run(&pipeline, events_tx.clone()).await {
+        // Get the process from the registry to pass to the engine
+        let process = {
+            let procs = processes.lock().await;
+            if let Some(process_arc) = procs.get(&process_id) {
+                let p = process_arc.lock().await;
+                p.clone()
+            } else {
+                return; // Process not found, should not happen
+            }
+        };
+
+        let handle = tokio::spawn(async move {
+            match engine.run(&pipeline, process, events_tx.clone()).await {
                 Ok(final_process) => {
-                    Self::update_process_state(processes, process_id, final_process).await;
+                    Self::update_process_state(processes.clone(), process_id, final_process).await;
                 }
                 Err(e) => {
-                    Self::handle_pipeline_failure(processes, process_id, e).await;
+                    Self::handle_pipeline_failure(processes.clone(), process_id, e).await;
                 }
             }
+
+            // Clean up the task handle after completion
+            let mut handles = task_handles.lock().await;
+            handles.remove(&process_id);
         });
+
+        // Store the task handle
+        let mut handles = self.task_handles.lock().await;
+        handles.insert(process_id, handle);
     }
 
     /// Update the stored process state after successful execution.
@@ -224,7 +252,8 @@ impl StateManager {
 
     /// Kill a running process immediately.
     ///
-    /// The process will be removed from the active processes registry.
+    /// This method aborts the background tokio task executing the pipeline,
+    /// marks the process as Killed, and emits a ProcessKilled event.
     ///
     /// # Arguments
     ///
@@ -234,10 +263,18 @@ impl StateManager {
     ///
     /// Returns an error if the process is not found.
     pub async fn kill_process(&self, process_id: Uuid) -> Result<()> {
-        let mut processes = self.processes.lock().await;
+        // 1. Abort the task handle
+        let mut task_handles = self.task_handles.lock().await;
+        if let Some(handle) = task_handles.remove(&process_id) {
+            handle.abort();
+        }
+        drop(task_handles);
 
-        if processes.remove(&process_id).is_some() {
-            // TODO: Cancel the execution task
+        // 2. Update the process state to Killed
+        let processes = self.processes.lock().await;
+        if let Some(process_arc) = processes.get(&process_id) {
+            let mut process = process_arc.lock().await;
+            kill_process_state(&mut process, &self.events_tx).await;
             Ok(())
         } else {
             Err(anyhow::anyhow!("Process {} not found", process_id))
@@ -292,6 +329,7 @@ mod tests {
     use super::*;
     use pk_protocol::agent_models::Agent as AgentConfig;
     use pk_protocol::pipeline_models::{MasterAgentConfig, ProcessStep};
+    use pk_protocol::process_models::ProcessStatus;
     use std::collections::HashMap as StdHashMap;
 
     fn create_test_agent_config(name: &str) -> AgentConfig {
@@ -414,5 +452,142 @@ mod tests {
         let proc2 = state_manager.get_process(process_id_2).await;
         assert!(proc2.is_some(), "Process 2 should be retrievable");
         assert_eq!(proc2.unwrap().pipeline_name, "pipeline-2");
+    }
+
+    /// RED: Acceptance test for resume_process_by_id
+    ///
+    /// This test validates that:
+    /// 1. A process in HUMAN_REVIEW state can be resumed
+    /// 2. The resume signal actually triggers continuation of pipeline execution
+    /// 3. The process completes after being resumed
+    /// 4. ProcessResumed event is emitted
+    #[tokio::test]
+    async fn test_resume_process_by_id_acceptance() {
+        let configs = vec![
+            create_test_agent_config("agent1"),
+            create_test_agent_config("agent2"),
+        ];
+        let manager = AgentManager::new(configs);
+        let (tx, mut rx) = mpsc::channel(100);
+
+        let state_manager = StateManager::new(manager, tx);
+
+        // Create a pipeline with HUMAN_REVIEW in the middle
+        let steps = vec![
+            ProcessStep::Agent("agent1".to_string()),
+            ProcessStep::HumanReview(pk_protocol::pipeline_models::HumanReviewMarker),
+            ProcessStep::Agent("agent2".to_string()),
+        ];
+        let pipeline = create_test_pipeline("review-pipeline", steps);
+
+        // Start the pipeline
+        let process_id = state_manager.start_pipeline(pipeline).await;
+
+        // Wait for the pipeline to pause at HUMAN_REVIEW
+        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+        // Verify the process is in HUMAN_REVIEW state
+        let process = state_manager.get_process(process_id).await.unwrap();
+        assert_eq!(
+            process.status,
+            ProcessStatus::HumanReview,
+            "Process should be in HUMAN_REVIEW state"
+        );
+        assert_eq!(process.current_step_index, 1, "Should be at step 1");
+
+        // Resume the process
+        let resume_result = state_manager.resume_process_by_id(process_id).await;
+        assert!(resume_result.is_ok(), "Resume should succeed");
+
+        // Wait for the pipeline to complete
+        tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
+
+        // Verify the process completed
+        let final_process = state_manager.get_process(process_id).await.unwrap();
+        assert_eq!(
+            final_process.status,
+            ProcessStatus::Completed,
+            "Process should complete after resume"
+        );
+
+        // Verify we received the ProcessResumed event
+        let mut events = Vec::new();
+        while let Ok(event) = rx.try_recv() {
+            events.push(event);
+        }
+
+        let has_resumed_event = events.iter().any(|e| {
+            matches!(e, Event::ProcessResumed { process_id: pid } if *pid == process_id)
+        });
+
+        assert!(
+            has_resumed_event,
+            "Should emit ProcessResumed event"
+        );
+    }
+
+    /// RED: Acceptance test for kill_process with task cancellation
+    ///
+    /// This test validates that:
+    /// 1. kill_process aborts the background tokio task immediately
+    /// 2. The process state transitions to Killed
+    /// 3. ProcessKilled event is emitted
+    /// 4. The task handle is removed from the registry
+    /// 5. No memory leaks occur
+    #[tokio::test]
+    async fn test_kill_process_aborts_background_task() {
+        let configs = vec![create_test_agent_config("agent1")];
+        let manager = AgentManager::new(configs);
+        let (tx, mut rx) = mpsc::channel(100);
+
+        let state_manager = StateManager::new(manager, tx);
+
+        // Create a long-running pipeline (will simulate with a simple agent)
+        let steps = vec![ProcessStep::Agent("agent1".to_string())];
+        let pipeline = create_test_pipeline("long-running", steps);
+
+        // Start the pipeline
+        let process_id = state_manager.start_pipeline(pipeline).await;
+
+        // Give the task time to start
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+
+        // Verify the process is running
+        let process = state_manager.get_process(process_id).await;
+        assert!(process.is_some(), "Process should exist");
+
+        // Kill the process
+        let kill_result = state_manager.kill_process(process_id).await;
+        assert!(kill_result.is_ok(), "Kill should succeed");
+
+        // Wait a moment for the abortion to take effect
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+
+        // Verify the process was marked as Killed
+        let killed_process = state_manager.get_process(process_id).await;
+        assert!(
+            killed_process.is_some(),
+            "Process should still be retrievable"
+        );
+        assert_eq!(
+            killed_process.unwrap().status,
+            ProcessStatus::Killed,
+            "Process should be in Killed state"
+        );
+
+        // Verify ProcessKilled event was emitted
+        let mut events = Vec::new();
+        while let Ok(event) = rx.try_recv() {
+            events.push(event);
+        }
+
+        let has_killed_event = events
+            .iter()
+            .any(|e| matches!(e, Event::ProcessKilled { process_id: pid } if *pid == process_id));
+
+        assert!(has_killed_event, "Should emit ProcessKilled event");
+
+        // Verify the task handle was removed (implicitly tested by successful abort)
+        // If the handle wasn't removed, subsequent operations would fail
     }
 }

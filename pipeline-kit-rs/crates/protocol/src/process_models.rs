@@ -5,6 +5,8 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use tokio::sync::Notify;
 use ts_rs::TS;
 use uuid::Uuid;
 
@@ -39,6 +41,11 @@ pub enum ProcessStatus {
 
     /// Process has failed due to an error.
     Failed,
+
+    /// Process was killed by user request.
+    ///
+    /// This happens when the user explicitly terminates a process.
+    Killed,
 }
 
 /// Represents the runtime state of a single pipeline execution.
@@ -80,4 +87,13 @@ pub struct Process {
     /// Timestamp when the process was completed (if finished).
     #[ts(optional, type = "string")]
     pub completed_at: Option<DateTime<Utc>>,
+
+    /// Notifier used to signal resume from paused or human review states.
+    ///
+    /// This field is not serialized and is used internally for async task coordination.
+    /// When a process is paused, the PipelineEngine waits on this notifier.
+    /// When resume is called, the StateManager signals this notifier to continue execution.
+    #[serde(skip)]
+    #[ts(skip)]
+    pub resume_notifier: Arc<Notify>,
 }
