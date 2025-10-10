@@ -163,11 +163,25 @@ cd pipeline-kit-rs && cargo build --all-targets --all-features
 - This includes all crates, examples, tests, and benchmarks.
 
 #### **4. Test Execution**
+
+**Preferred: Use cargo-nextest (faster, better output)**
+```bash
+cd pipeline-kit-rs && cargo nextest run --all-features
+```
+
+**Alternative: Use standard cargo test**
 ```bash
 cd pipeline-kit-rs && cargo test --all-targets --all-features
 ```
-- Runs all unit tests, integration tests, and doc tests.
+
+- **cargo nextest** is the RECOMMENDED test runner for this project:
+  - ⚡ Faster parallel execution (process-based isolation)
+  - 📊 Cleaner, real-time test progress output
+  - 🔄 Built-in test retry support for flaky tests
+  - 📈 Per-test execution time tracking
+- Install nextest: `cargo install cargo-nextest --locked`
 - ALL tests must pass. Do not mark a task complete if tests are failing.
+- Doc tests are not run by nextest; run them separately with `cargo test --doc` if needed.
 
 #### **5. TypeScript Type Generation**
 ```bash
@@ -205,7 +219,7 @@ When completing a task, AI agents should:
 ✅ Code formatting check passed
 ✅ Clippy analysis passed (0 warnings)
 ✅ Build successful
-✅ All tests passed (15 tests)
+✅ All tests passed (47 tests in 0.892s via cargo nextest)
 ✅ TypeScript types generated successfully
 ✅ Documentation built without errors
 
