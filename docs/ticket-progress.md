@@ -3,10 +3,10 @@
 ## Phase 1: 프로젝트 기반 및 핵심 데이터 모델 정의
 
 ### Ticket 1.1: 모노레포 및 Cargo 워크스페이스 구조 설정
-- [ ] RED: `cargo check --workspace` 실패 확인
-- [ ] GREEN: 디렉터리 구조 및 `Cargo.toml` 워크스페이스 생성
-- [ ] REFACTOR: 파일 구조 및 멤버 명시 검증
-- [ ] **Ticket 1.1 완료**
+- [x] RED: `cargo check --workspace` 실패 확인
+- [x] GREEN: 디렉터리 구조 및 `Cargo.toml` 워크스페이스 생성
+- [x] REFACTOR: 파일 구조 및 멤버 명시 검증
+- [x] **Ticket 1.1 완료**
 
 ### Ticket 1.2: 핵심 프로토콜 및 데이터 모델 정의 (`pk-protocol` 크레이트)
 - [ ] RED: 테스트 파일 작성 및 컴파일 에러 확인
@@ -82,10 +82,10 @@
 
 ## 전체 진행 상황
 
-- **Phase 1**: 0/2 티켓 완료
+- **Phase 1**: 1/2 티켓 완료
 - **Phase 2**: 0/2 티켓 완료
 - **Phase 3**: 0/1 티켓 완료
 - **Phase 4**: 0/4 티켓 완료
 - **Phase 5**: 0/1 티켓 완료
 
-**총 진행률**: 0/10 티켓 완료 (0%)
+**총 진행률**: 1/10 티켓 완료 (10%)
