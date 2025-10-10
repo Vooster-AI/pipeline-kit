@@ -1,0 +1,4 @@
+# Add words that codespell should ignore (one per line)
+# Common technical terms that might be flagged
+slowy
+crate

@@ -1,0 +1,3 @@
+[codespell]
+skip = target,*.lock,pnpm-lock.yaml,Cargo.lock,.git,node_modules,dist,vendor
+ignore-words = .codespellignore
