@@ -7,11 +7,34 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      # Rust Setup
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            pipeline-kit-rs/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install cargo-nextest
+        run: cargo install cargo-nextest --locked || true
+
+      # Node.js/pnpm Setup
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -29,8 +52,8 @@ jobs:
         run: |
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
-      - uses: actions/cache@v4
-        name: Setup pnpm cache
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -40,17 +63,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run tests
+      # Rust Verification (follows CLAUDE.md checklist)
+      - name: Run Rust verification
+        run: bash scripts/verify-rust.sh
+
+      # TypeScript Tests
+      - name: Run TypeScript tests
         working-directory: pipeline-kit-cli
         run: pnpm test
 
+      # TypeScript Type Generation & Verification
+      - name: Verify TypeScript types
+        run: bash scripts/verify-ts-types.sh
+
+      # Documentation & Code Quality
       - name: Check README files contain only ASCII
         run: |
-          if [ -f scripts/asciicheck.py ]; then
-            python3 scripts/asciicheck.py README.md
-            if [ -f pipeline-kit-cli/README.md ]; then
-              python3 scripts/asciicheck.py pipeline-kit-cli/README.md
-            fi
-          else
-            echo "No asciicheck script found, skipping"
+          python3 scripts/asciicheck.py README.md
+          if [ -f pipeline-kit-cli/README.md ]; then
+            python3 scripts/asciicheck.py pipeline-kit-cli/README.md
+          fi
+          if [ -f pipeline-kit-rs/README.md ]; then
+            python3 scripts/asciicheck.py pipeline-kit-rs/README.md
           fi
