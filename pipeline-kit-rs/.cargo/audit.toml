@@ -1,0 +1,25 @@
+# cargo-audit configuration for pipeline-kit-rs
+#
+# This file configures which advisories to ignore during security audits.
+# Only ignore advisories that are:
+# 1. Non-critical (e.g., "unmaintained" warnings)
+# 2. From transitive dependencies we cannot easily replace
+# 3. Have no actual security vulnerabilities
+
+[advisories]
+# Ignore RUSTSEC-2024-0436: paste crate marked as unmaintained
+#
+# Rationale:
+# - This is a "warning" level advisory, not a security vulnerability
+# - The paste crate is a transitive dependency from ratatui 0.29
+# - No security issues have been identified, only maintenance status
+# - Upgrading to ratatui 0.30 requires using alpha releases (not stable)
+# - The paste crate is a proc-macro used only at compile time
+#
+# Decision: Safe to ignore until ratatui 0.30 stable is released or
+# a security vulnerability is discovered in paste.
+#
+# Tracking: Will revisit when ratatui 0.30 stable is available
+ignore = [
+    "RUSTSEC-2024-0436",  # paste - unmaintained (proc-macro, compile-time only)
+]
