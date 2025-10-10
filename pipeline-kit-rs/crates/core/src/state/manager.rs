@@ -228,6 +228,11 @@ impl StateManager {
     /// The process will transition from Paused or HumanReview state
     /// back to Running and continue execution.
     ///
+    /// This method uses the Notify pattern to wake up the blocked
+    /// PipelineEngine task. The background task is already running
+    /// and waiting on `resume_notifier.notified().await`, so no
+    /// re-spawning is needed.
+    ///
     /// # Arguments
     ///
     /// * `process_id` - The UUID of the process to resume
@@ -235,18 +240,12 @@ impl StateManager {
     /// # Errors
     ///
     /// Returns an error if the process is not found.
-    ///
-    /// # Note
-    ///
-    /// This is a simplified implementation. A full implementation would
-    /// need to re-spawn the execution task to continue from where it paused.
     pub async fn resume_process_by_id(&self, process_id: Uuid) -> Result<()> {
         let processes = self.processes.lock().await;
 
         if let Some(process_arc) = processes.get(&process_id) {
             let mut process = process_arc.lock().await;
             resume_process(&mut process, &self.events_tx).await;
-            // TODO: Re-spawn execution task to continue pipeline
             Ok(())
         } else {
             Err(anyhow::anyhow!("Process {} not found", process_id))
