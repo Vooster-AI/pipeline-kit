@@ -80,6 +80,72 @@
 
 ---
 
+## Phase 6: 애플리케이션 실행 가능성 확보 (Critical Path)
+
+> **목표**: 현재 실행 불가능한 상태인 TUI 애플리케이션을 즉시 실행 가능한 상태로 만듭니다.
+
+### Ticket 4.1-Fix: TUI 애플리케이션 진입점(`main.rs`) 구현
+- [x] RED: `cargo run --bin pk-tui` 실패 확인
+- [x] GREEN: `main.rs` 및 `run_app` 함수 구현
+- [x] REFACTOR: 터미널 초기화 및 복원 로직 강화
+- [x] **Ticket 4.1-Fix 완료**
+
+### Ticket 4.2-Fix: 대시보드 위젯을 TUI에 통합
+- [x] RED: 테스트에서 Paragraph 위젯 확인 및 실패
+- [x] GREEN: `render_dashboard` 함수를 `ui.rs`에 통합
+- [x] REFACTOR: 렌더링 로직과 상태 변경 로직 분리
+- [x] **Ticket 4.2-Fix 완료**
+
+---
+
+## Phase 7: 핵심 엔진 기능 완성 및 배포 준비
+
+> **목표**: 파이프라인의 핵심 제어 로직을 완성하고, npm 배포를 위한 스크립트를 실제 릴리즈 상황에 맞게 수정합니다.
+
+### Ticket 3.1-Fix.1: `start_pipeline`이 실제 `Process` ID를 반환하도록 수정
+- [ ] RED: 반환된 UUID 검증 테스트 작성 및 실패 확인
+- [ ] GREEN: `PipelineEngine` 스폰 및 `Process` 저장 구현
+- [ ] REFACTOR: 프로세스 생성 로직을 헬퍼 함수로 분리
+- [ ] **Ticket 3.1-Fix.1 완료**
+
+### Ticket 5.1-Fix.1: GitHub Release에서 바이너리 다운로드 기능 구현
+- [ ] RED: 프로덕션 모드 실행 테스트 작성 및 실패 확인
+- [ ] GREEN: `gh release download` 및 압축 해제 로직 구현
+- [ ] REFACTOR: 플랫폼 이름 결정 로직 분리 및 오류 처리 개선
+- [ ] **Ticket 5.1-Fix.1 완료**
+
+---
+
+## Phase 8: 품질 개선 및 안정화
+
+> **목표**: 핵심 기능의 안정성을 높이고, 코드 품질을 개선하며, 사용자 경험을 다듬습니다.
+
+### Ticket 3.1-Fix.2: `resume_process_by_id` 로직 수정
+- [ ] RED: resume 기능 테스트 작성 및 실패 확인
+- [ ] GREEN: `tokio::sync::Notify`를 통한 재개 신호 구현
+- [ ] REFACTOR: 재개 로직을 명확히 문서화
+- [ ] **Ticket 3.1-Fix.2 완료**
+
+### Ticket 3.1-Fix.3: `kill_process` 태스크 취소 로직
+- [ ] RED: 태스크 취소 테스트 작성 및 실패 확인
+- [ ] GREEN: `JoinHandle.abort()` 호출 구현
+- [ ] REFACTOR: 리소스 정리 로직 개선
+- [ ] **Ticket 3.1-Fix.3 완료**
+
+### Ticket 5.1-Fix.2: TDD 테스트 추가
+- [ ] RED: 플랫폼 바이너리 경로 테스트 작성
+- [ ] GREEN: `jest` 또는 `vitest` 테스트 프레임워크 추가
+- [ ] REFACTOR: 테스트 커버리지 확장
+- [ ] **Ticket 5.1-Fix.2 완료**
+
+### Ticket 5.1-Fix.3: 디렉터리 구조 정리
+- [ ] RED: 사용자 친화적 이름 테스트 작성
+- [ ] GREEN: target triple을 `macos-arm64` 등으로 매핑
+- [ ] REFACTOR: `codex-cli` 플랫폼 감지 로직 참고하여 개선
+- [ ] **Ticket 5.1-Fix.3 완료**
+
+---
+
 ## 전체 진행 상황
 
 - **Phase 1**: 2/2 티켓 완료 ✅
@@ -87,5 +153,8 @@
 - **Phase 3**: 1/1 티켓 완료 ✅
 - **Phase 4**: 4/4 티켓 완료 ✅
 - **Phase 5**: 1/1 티켓 완료 ✅
+- **Phase 6**: 2/2 티켓 완료 ✅
+- **Phase 7**: 0/2 티켓 완료
+- **Phase 8**: 0/4 티켓 완료
 
-**총 진행률**: 10/10 티켓 완료 (100%) 🎉
+**총 진행률**: 12/18 티켓 완료 (66.7%)

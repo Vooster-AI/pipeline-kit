@@ -18,6 +18,7 @@ use tokio_stream::StreamExt;
 
 use crate::event_handler;
 use crate::tui::{Tui, TuiEvent};
+use crate::widgets::dashboard;
 use crate::widgets::CommandComposer;
 
 /// Main TUI application state.
@@ -212,26 +213,8 @@ impl App {
 
     /// Render the dashboard (list of processes).
     fn render_dashboard(&self, frame: &mut Frame, area: Rect) {
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title("Dashboard - Processes");
-
-        let text = if self.processes.is_empty() {
-            "No processes running.".to_string()
-        } else {
-            self.processes
-                .iter()
-                .enumerate()
-                .map(|(i, p)| {
-                    let prefix = if i == self.selected_index { "> " } else { "  " };
-                    format!("{}{} | {:?} | {}", prefix, p.pipeline_name, p.status, p.id)
-                })
-                .collect::<Vec<_>>()
-                .join("\n")
-        };
-
-        let paragraph = Paragraph::new(text).block(block);
-        frame.render_widget(paragraph, area);
+        // Delegate to the dashboard widget's render_dashboard function
+        dashboard::render_dashboard(frame, area, &self.processes, self.selected_index);
     }
 
     /// Render the detail view (selected process logs).
@@ -394,5 +377,80 @@ mod tests {
         // Should not go below 0
         app.handle_key_event(KeyEvent::from(KeyCode::Up));
         assert_eq!(app.selected_index, 0);
+    }
+
+    #[tokio::test]
+    async fn test_dashboard_renders_table_not_paragraph() {
+        // RED: This test should fail because we're currently using Paragraph
+        // instead of the Table widget from widgets::dashboard
+        let (op_tx, _op_rx) = unbounded_channel();
+        let (_event_tx, event_rx) = unbounded_channel();
+
+        let mut app = App::new(op_tx, event_rx);
+
+        // Add some test processes
+        use pk_protocol::ProcessStatus;
+        use chrono::Utc;
+
+        let process1 = Process {
+            id: Uuid::new_v4(),
+            pipeline_name: "test-pipeline-1".to_string(),
+            status: ProcessStatus::Running,
+            current_step_index: 0,
+            logs: vec![],
+            started_at: Utc::now(),
+            completed_at: None,
+        };
+
+        let process2 = Process {
+            id: Uuid::new_v4(),
+            pipeline_name: "test-pipeline-2".to_string(),
+            status: ProcessStatus::Completed,
+            current_step_index: 5,
+            logs: vec![],
+            started_at: Utc::now(),
+            completed_at: Some(Utc::now()),
+        };
+
+        app.processes.push(process1);
+        app.processes.push(process2);
+
+        let backend = TestBackend::new(120, 30);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        terminal
+            .draw(|frame| {
+                app.render(frame);
+            })
+            .unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let content = buffer
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect::<String>();
+
+        // The Table widget should render proper headers
+        assert!(content.contains("ID"), "Should have 'ID' column header");
+        assert!(content.contains("Pipeline"), "Should have 'Pipeline' column header");
+        assert!(content.contains("Status"), "Should have 'Status' column header");
+        assert!(content.contains("Step"), "Should have 'Step' column header");
+
+        // Should contain process data
+        assert!(content.contains("test-pipeline-1"), "Should show first pipeline name");
+        assert!(content.contains("test-pipeline-2"), "Should show second pipeline name");
+
+        // Should NOT contain the Paragraph-style ">" prefix
+        // (Table uses ">>" as highlight symbol instead)
+        // This assertion will fail with current Paragraph implementation
+        let lines: Vec<&str> = content.split('\n').collect();
+        let has_paragraph_style_prefix = lines.iter().any(|line| {
+            line.trim_start().starts_with(">") && !line.trim_start().starts_with(">>")
+        });
+        assert!(
+            !has_paragraph_style_prefix,
+            "Should NOT use Paragraph-style single '>' prefix"
+        );
     }
 }
