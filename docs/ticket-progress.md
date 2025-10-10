@@ -103,16 +103,16 @@
 > **목표**: 파이프라인의 핵심 제어 로직을 완성하고, npm 배포를 위한 스크립트를 실제 릴리즈 상황에 맞게 수정합니다.
 
 ### Ticket 3.1-Fix.1: `start_pipeline`이 실제 `Process` ID를 반환하도록 수정
-- [ ] RED: 반환된 UUID 검증 테스트 작성 및 실패 확인
-- [ ] GREEN: `PipelineEngine` 스폰 및 `Process` 저장 구현
-- [ ] REFACTOR: 프로세스 생성 로직을 헬퍼 함수로 분리
-- [ ] **Ticket 3.1-Fix.1 완료**
+- [x] RED: 반환된 UUID 검증 테스트 작성 및 실패 확인
+- [x] GREEN: `PipelineEngine` 스폰 및 `Process` 저장 구현
+- [x] REFACTOR: 프로세스 생성 로직을 헬퍼 함수로 분리
+- [x] **Ticket 3.1-Fix.1 완료**
 
 ### Ticket 5.1-Fix.1: GitHub Release에서 바이너리 다운로드 기능 구현
-- [ ] RED: 프로덕션 모드 실행 테스트 작성 및 실패 확인
-- [ ] GREEN: `gh release download` 및 압축 해제 로직 구현
-- [ ] REFACTOR: 플랫폼 이름 결정 로직 분리 및 오류 처리 개선
-- [ ] **Ticket 5.1-Fix.1 완료**
+- [x] RED: 프로덕션 모드 실행 테스트 작성 및 실패 확인
+- [x] GREEN: `gh release download` 및 압축 해제 로직 구현
+- [x] REFACTOR: 플랫폼 이름 결정 로직 분리 및 오류 처리 개선
+- [x] **Ticket 5.1-Fix.1 완료**
 
 ---
 
@@ -154,7 +154,7 @@
 - **Phase 4**: 4/4 티켓 완료 ✅
 - **Phase 5**: 1/1 티켓 완료 ✅
 - **Phase 6**: 2/2 티켓 완료 ✅
-- **Phase 7**: 0/2 티켓 완료
+- **Phase 7**: 1/2 티켓 완료
 - **Phase 8**: 0/4 티켓 완료
 
-**총 진행률**: 12/18 티켓 완료 (66.7%)
+**총 진행률**: 13/18 티켓 완료 (72.2%)
