@@ -51,6 +51,17 @@ This document provides development guidelines for `pipeline-kit`, an AI agent pi
 
 - **Git Commits:** Commit after each meaningful task. Write concise English commit messages.
 
+- **`#[allow(dead_code)]` Usage:**
+  - DO use when: Public APIs unused internally, or conditional compilation code (feature flags, platform-specific, test helpers).
+  - DON'T use for: Truly unused code (delete it), or "might use later" scenarios (delete and restore from git if needed).
+  - MUST add a comment above explaining why the code is intentionally unused.
+
+  ```rust
+  // Allow: Public API for external consumers, unused internally
+  #[allow(dead_code)]
+  pub fn from_bytes(data: &[u8]) -> Self { ... }
+  ```
+
 ### **Guidelines**
 
 - **Adding a New Command (e.g., `/stop <process-id>`)**
