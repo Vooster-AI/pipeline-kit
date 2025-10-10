@@ -223,10 +223,10 @@ impl PipelineEngine {
     }
 }
 
-/* TEMPORARILY DISABLED DUE TO SIGNATURE CHANGE
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::state::process::create_process;
     use pk_protocol::agent_models::Agent as AgentConfig;
     use pk_protocol::pipeline_models::MasterAgentConfig;
     use pk_protocol::process_models::ProcessStatus;
@@ -277,13 +277,14 @@ mod tests {
         let pipeline = create_test_pipeline("simple-pipeline", steps);
 
         let (tx, _rx) = mpsc::channel(100);
+        let process = create_process("simple-pipeline".to_string());
 
-        let result = engine.run(&pipeline, tx).await;
+        let result = engine.run(&pipeline, process, tx).await;
         assert!(result.is_ok());
 
-        let process = result.unwrap();
-        assert_eq!(process.status, ProcessStatus::Completed);
-        assert_eq!(process.pipeline_name, "simple-pipeline");
+        let final_process = result.unwrap();
+        assert_eq!(final_process.status, ProcessStatus::Completed);
+        assert_eq!(final_process.pipeline_name, "simple-pipeline");
     }
 
     #[tokio::test]
@@ -303,14 +304,19 @@ mod tests {
         let pipeline = create_test_pipeline("review-pipeline", steps);
 
         let (tx, _rx) = mpsc::channel(100);
+        let process = create_process("review-pipeline".to_string());
 
-        let result = engine.run(&pipeline, tx).await;
-        assert!(result.is_ok());
+        // Spawn the engine in a background task since it will block at HumanReview
+        let handle = tokio::spawn(async move { engine.run(&pipeline, process, tx).await });
 
-        let process = result.unwrap();
-        // Should pause at HUMAN_REVIEW, not complete
-        assert_eq!(process.status, ProcessStatus::HumanReview);
-        assert_eq!(process.current_step_index, 1); // Stopped at step 1 (HUMAN_REVIEW)
+        // Give the engine time to reach HumanReview state
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+        // The task should still be running (blocked at HumanReview)
+        assert!(!handle.is_finished());
+
+        // Abort the task to clean up
+        handle.abort();
     }
 
     #[tokio::test]
@@ -323,8 +329,9 @@ mod tests {
         let pipeline = create_test_pipeline("failing-pipeline", steps);
 
         let (tx, _rx) = mpsc::channel(100);
+        let process = create_process("failing-pipeline".to_string());
 
-        let result = engine.run(&pipeline, tx).await;
+        let result = engine.run(&pipeline, process, tx).await;
         assert!(result.is_err());
     }
 
@@ -338,8 +345,9 @@ mod tests {
         let pipeline = create_test_pipeline("event-test", steps);
 
         let (tx, mut rx) = mpsc::channel(100);
+        let process = create_process("event-test".to_string());
 
-        let handle = tokio::spawn(async move { engine.run(&pipeline, tx).await });
+        let handle = tokio::spawn(async move { engine.run(&pipeline, process, tx).await });
 
         let mut events = Vec::new();
         while let Some(event) = rx.recv().await {
@@ -363,12 +371,15 @@ mod tests {
         )));
 
         // Should have log chunks
-        assert!(events.iter().any(|e| matches!(e, Event::ProcessLogChunk { .. })));
+        assert!(events
+            .iter()
+            .any(|e| matches!(e, Event::ProcessLogChunk { .. })));
 
         // Should have ProcessCompleted event
-        assert!(events.iter().any(|e| matches!(e, Event::ProcessCompleted { .. })));
+        assert!(events
+            .iter()
+            .any(|e| matches!(e, Event::ProcessCompleted { .. })));
 
         let _ = handle.await;
     }
 }
-*/
