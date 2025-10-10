@@ -9,6 +9,7 @@
 pub mod app;
 pub mod event_handler;
 pub mod tui;
+pub mod widgets;
 
 pub use app::App;
 pub use tui::Tui;

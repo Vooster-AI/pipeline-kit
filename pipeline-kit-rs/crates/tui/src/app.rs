@@ -18,6 +18,7 @@ use tokio_stream::StreamExt;
 
 use crate::event_handler;
 use crate::tui::{Tui, TuiEvent};
+use crate::widgets::CommandComposer;
 
 /// Main TUI application state.
 ///
@@ -27,14 +28,16 @@ pub struct App {
     pub processes: Vec<Process>,
     /// Index of the currently selected process (for detail view).
     pub selected_index: usize,
-    /// Current command input from the user.
-    pub command_input: String,
+    /// Command composer widget with autocomplete.
+    pub command_composer: CommandComposer,
     /// Channel to send operations to the core.
     pub op_tx: UnboundedSender<Op>,
     /// Channel to receive events from the core.
     pub event_rx: UnboundedReceiver<Event>,
     /// Flag to indicate if the application should exit.
     pub should_exit: bool,
+    /// Error message to display (if any).
+    pub error_message: Option<String>,
 }
 
 impl App {
@@ -46,10 +49,11 @@ impl App {
         Self {
             processes: Vec::new(),
             selected_index: 0,
-            command_input: String::new(),
+            command_composer: CommandComposer::new(),
             op_tx,
             event_rx,
             should_exit: false,
+            error_message: None,
         }
     }
 
@@ -102,13 +106,89 @@ impl App {
 
     /// Handle keyboard events.
     fn handle_key_event(&mut self, key_event: KeyEvent) {
-        self.should_exit = event_handler::handle_keyboard_event(
-            key_event,
-            &mut self.command_input,
-            &mut self.selected_index,
-            &self.processes,
-            &self.op_tx,
-        );
+        use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
+
+        // Ignore key release events
+        if key_event.kind != KeyEventKind::Press {
+            return;
+        }
+
+        // Handle command composer interactions
+        match key_event.code {
+            KeyCode::Char('q') if self.command_composer.input().is_empty() => {
+                self.should_exit = true;
+            }
+            KeyCode::Char('c') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.should_exit = true;
+            }
+            KeyCode::Up if self.command_composer.should_show_popup() => {
+                self.command_composer.move_selection_up();
+            }
+            KeyCode::Down if self.command_composer.should_show_popup() => {
+                self.command_composer.move_selection_down();
+            }
+            KeyCode::Up => {
+                // Navigate processes
+                if self.selected_index > 0 {
+                    self.selected_index -= 1;
+                }
+            }
+            KeyCode::Down => {
+                // Navigate processes
+                if self.selected_index + 1 < self.processes.len() {
+                    self.selected_index += 1;
+                }
+            }
+            KeyCode::Tab if self.command_composer.should_show_popup() => {
+                self.command_composer.complete_with_selection();
+            }
+            KeyCode::Enter => {
+                self.handle_command_submit();
+            }
+            KeyCode::Char(c) => {
+                self.command_composer.insert_char(c);
+                // Clear error when user starts typing
+                self.error_message = None;
+            }
+            KeyCode::Backspace => {
+                self.command_composer.delete_char();
+            }
+            KeyCode::Left => {
+                self.command_composer.move_cursor_left();
+            }
+            KeyCode::Right => {
+                self.command_composer.move_cursor_right();
+            }
+            KeyCode::Esc => {
+                self.command_composer.clear();
+                self.error_message = None;
+            }
+            _ => {}
+        }
+    }
+
+    /// Handle command submission (Enter key).
+    fn handle_command_submit(&mut self) {
+        match self.command_composer.parse_command() {
+            Ok(Some(op)) => {
+                // Send the Op to the core
+                if let Err(e) = self.op_tx.send(op) {
+                    self.error_message = Some(format!("Failed to send command: {}", e));
+                } else {
+                    // Clear the composer on success
+                    self.command_composer.clear();
+                    self.error_message = None;
+                }
+            }
+            Ok(None) => {
+                // Empty command, just clear
+                self.command_composer.clear();
+            }
+            Err(err) => {
+                // Show error message
+                self.error_message = Some(err);
+            }
+        }
     }
 
     /// Render the TUI.
@@ -176,15 +256,35 @@ impl App {
 
     /// Render the command input area.
     fn render_command_input(&self, frame: &mut Frame, area: Rect) {
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title("Command (q to quit)");
+        // Render the composer input
+        self.command_composer.render(area, frame.buffer_mut());
 
-        let text = format!("> {}", self.command_input);
-        let paragraph = Paragraph::new(text)
-            .block(block)
-            .style(Style::default().fg(Color::Yellow));
-        frame.render_widget(paragraph, area);
+        // Render autocomplete popup if needed (above the command input)
+        if self.command_composer.should_show_popup() {
+            let popup_height = 7.min(area.height.saturating_sub(1));
+            let popup_y = area.y.saturating_sub(popup_height);
+            let popup_area = Rect {
+                x: area.x,
+                y: popup_y,
+                width: area.width,
+                height: popup_height,
+            };
+            self.command_composer.render_popup(popup_area, frame.buffer_mut());
+        }
+
+        // Render error message if any
+        if let Some(ref error) = self.error_message {
+            let error_text = format!("Error: {}", error);
+            let error_paragraph = Paragraph::new(error_text)
+                .style(Style::default().fg(Color::Red));
+            let error_area = Rect {
+                x: area.x + 2,
+                y: area.y + area.height - 1,
+                width: area.width.saturating_sub(4),
+                height: 1,
+            };
+            frame.render_widget(error_paragraph, error_area);
+        }
     }
 }
 

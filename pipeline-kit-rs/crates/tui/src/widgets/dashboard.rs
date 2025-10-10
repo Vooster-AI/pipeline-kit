@@ -24,34 +24,43 @@ pub fn render_dashboard(
     processes: &[Process],
     selected: usize,
 ) {
-    // Create table rows from processes
+    // Create table rows from processes with color-coded status
     let rows: Vec<Row> = processes
         .iter()
         .map(|p| {
+            let status_style = match p.status {
+                pk_protocol::ProcessStatus::Running => Style::default().fg(Color::Green),
+                pk_protocol::ProcessStatus::Completed => Style::default().fg(Color::Cyan),
+                pk_protocol::ProcessStatus::Failed => Style::default().fg(Color::Red),
+                pk_protocol::ProcessStatus::Pending => Style::default().fg(Color::Yellow),
+                pk_protocol::ProcessStatus::Paused => Style::default().fg(Color::Magenta),
+                pk_protocol::ProcessStatus::HumanReview => Style::default().fg(Color::LightYellow),
+            };
+
             Row::new(vec![
-                Cell::from(p.id.to_string()),
+                Cell::from(format_uuid(&p.id)),
                 Cell::from(p.pipeline_name.clone()),
-                Cell::from(format!("{:?}", p.status)),
-                Cell::from(p.current_step_index.to_string()),
+                Cell::from(format!("{:?}", p.status)).style(status_style),
+                Cell::from(format!("{}", p.current_step_index)),
             ])
         })
         .collect();
 
-    // Create table header
+    // Create table header with styling
     let header = Row::new(vec![
         Cell::from("ID"),
-        Cell::from("Name"),
+        Cell::from("Pipeline"),
         Cell::from("Status"),
         Cell::from("Step"),
     ])
-    .style(Style::default().add_modifier(Modifier::BOLD));
+    .style(Style::default().add_modifier(Modifier::BOLD).fg(Color::Cyan));
 
     // Create the table with proper widths
     let widths = [
-        ratatui::layout::Constraint::Length(36), // UUID length
-        ratatui::layout::Constraint::Percentage(40),
+        ratatui::layout::Constraint::Length(8),  // Shortened UUID (first 8 chars)
+        ratatui::layout::Constraint::Percentage(50),
         ratatui::layout::Constraint::Length(15),
-        ratatui::layout::Constraint::Length(8),
+        ratatui::layout::Constraint::Length(6),
     ];
 
     let table = Table::new(rows, widths)
@@ -59,10 +68,16 @@ pub fn render_dashboard(
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .title("Dashboard - Processes"),
+                .title("Dashboard - Processes")
+                .style(Style::default().fg(Color::White)),
         )
-        .row_highlight_style(Style::default().bg(Color::Blue).fg(Color::White))
-        .highlight_symbol("> ");
+        .row_highlight_style(
+            Style::default()
+                .bg(Color::Blue)
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol(">> ");
 
     // Create table state with selected index
     let mut table_state = TableState::default();
@@ -71,6 +86,12 @@ pub fn render_dashboard(
     }
 
     frame.render_stateful_widget(table, area, &mut table_state);
+}
+
+/// Format UUID to show only the first 8 characters for better readability.
+fn format_uuid(uuid: &uuid::Uuid) -> String {
+    let uuid_str = uuid.to_string();
+    uuid_str.chars().take(8).collect()
 }
 
 #[cfg(test)]
@@ -106,7 +127,7 @@ mod tests {
 
         // Should contain table headers
         assert!(content.contains("ID"));
-        assert!(content.contains("Name"));
+        assert!(content.contains("Pipeline"));
         assert!(content.contains("Status"));
         assert!(content.contains("Step"));
     }
@@ -155,7 +176,7 @@ mod tests {
 
         // Should contain table headers
         assert!(content.contains("ID"));
-        assert!(content.contains("Name"));
+        assert!(content.contains("Pipeline"));
         assert!(content.contains("Status"));
         assert!(content.contains("Step"));
 
