@@ -10,3 +10,8 @@ description = "CLI entry point for pipeline-kit"
 [[bin]]
 name = "pipeline"
 path = "src/main.rs"
+
+[dependencies]
+pk-tui = { path = "../tui" }
+tokio = { version = "1", features = ["full"] }
+color-eyre = "0.6"

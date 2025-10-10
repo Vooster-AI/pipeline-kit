@@ -7,6 +7,13 @@ license = { workspace = true }
 repository = { workspace = true }
 description = "Terminal UI for pipeline-kit"
 
+[[bin]]
+name = "pk-tui"
+path = "src/main.rs"
+
+[lib]
+path = "src/lib.rs"
+
 [dependencies]
 pk-protocol = { path = "../protocol" }
 pk-core = { path = "../core" }
@@ -22,6 +29,7 @@ tokio-stream = "0.1"
 # Error handling
 anyhow = "1"
 thiserror = "1"
+color-eyre = "0.6"
 
 # Utilities
 uuid = { version = "1", features = ["v4", "serde"] }
