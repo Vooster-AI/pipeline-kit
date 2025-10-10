@@ -205,9 +205,7 @@ mod tests {
         let configs = vec![create_test_config("test-agent")];
         let manager = AgentManager::new(configs);
 
-        let context = ExecutionContext {
-            instruction: "test instruction".to_string(),
-        };
+        let context = ExecutionContext::new("test instruction".to_string());
 
         let stream = manager.execute("test-agent", &context).await.unwrap();
         let events: Vec<_> = stream.collect().await;
@@ -223,9 +221,7 @@ mod tests {
         let configs = vec![create_test_config("test-agent")];
         let manager = AgentManager::new(configs);
 
-        let context = ExecutionContext {
-            instruction: "test instruction".to_string(),
-        };
+        let context = ExecutionContext::new("test instruction".to_string());
 
         let result = manager.execute("nonexistent", &context).await;
         assert!(result.is_err());
@@ -243,9 +239,7 @@ mod tests {
 
         let manager = AgentManager::new(configs).with_fallback("fallback".to_string());
 
-        let context = ExecutionContext {
-            instruction: "test instruction".to_string(),
-        };
+        let context = ExecutionContext::new("test instruction".to_string());
 
         // Primary agent should work
         let stream = manager.execute("primary", &context).await.unwrap();

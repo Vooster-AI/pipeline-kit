@@ -67,36 +67,105 @@ impl StateManager {
     ///
     /// The UUID of the newly created process.
     pub async fn start_pipeline(&self, pipeline: Pipeline) -> Uuid {
+        // Create and register the process
+        let process_id = self.create_and_register_process(&pipeline.name).await;
+
+        // Spawn the pipeline execution in the background
+        self.spawn_pipeline_execution(process_id, pipeline).await;
+
+        // Return the process ID
+        process_id
+    }
+
+    /// Create a new process and register it in the process registry.
+    ///
+    /// This is a helper function that creates a process with a unique ID,
+    /// initializes it in the Pending state, and stores it in the registry.
+    ///
+    /// # Arguments
+    ///
+    /// * `pipeline_name` - The name of the pipeline
+    ///
+    /// # Returns
+    ///
+    /// The UUID of the newly created process.
+    async fn create_and_register_process(&self, pipeline_name: &str) -> Uuid {
+        let process_id = Uuid::new_v4();
+
+        let mut initial_process = crate::state::process::create_process(pipeline_name.to_string());
+        initial_process.id = process_id;
+
+        let mut procs = self.processes.lock().await;
+        procs.insert(process_id, Arc::new(Mutex::new(initial_process)));
+
+        process_id
+    }
+
+    /// Spawn a background task to execute the pipeline.
+    ///
+    /// This function spawns a tokio task that runs the pipeline engine
+    /// and updates the process state based on the execution result.
+    ///
+    /// # Arguments
+    ///
+    /// * `process_id` - The ID of the process to execute
+    /// * `pipeline` - The pipeline definition to execute
+    async fn spawn_pipeline_execution(&self, process_id: Uuid, pipeline: Pipeline) {
         let engine = Arc::clone(&self.engine);
         let processes = Arc::clone(&self.processes);
         let events_tx = self.events_tx.clone();
 
-        // Spawn background task for pipeline execution
-        let handle = tokio::spawn(async move {
-            // Run the pipeline
+        tokio::spawn(async move {
             match engine.run(&pipeline, events_tx.clone()).await {
                 Ok(final_process) => {
-                    // Store the final process state
-                    let process_id = final_process.id;
-                    let mut procs = processes.lock().await;
-                    procs.insert(process_id, Arc::new(Mutex::new(final_process)));
+                    Self::update_process_state(processes, process_id, final_process).await;
                 }
                 Err(e) => {
-                    // Pipeline execution failed
-                    eprintln!("Pipeline execution failed: {}", e);
+                    Self::handle_pipeline_failure(processes, process_id, e).await;
                 }
             }
         });
+    }
 
-        // For now, we create a temporary process to get the ID
-        // In a more sophisticated implementation, we would track the spawned task
-        // and return the process ID immediately
-        // This is a simplified version for the initial implementation
-        drop(handle);
+    /// Update the stored process state after successful execution.
+    ///
+    /// # Arguments
+    ///
+    /// * `processes` - The shared process registry
+    /// * `process_id` - The ID of the process to update
+    /// * `final_process` - The final process state from the engine
+    async fn update_process_state(
+        processes: Arc<Mutex<HashMap<Uuid, Arc<Mutex<Process>>>>>,
+        process_id: Uuid,
+        final_process: Process,
+    ) {
+        let mut procs = processes.lock().await;
+        if let Some(process_arc) = procs.get_mut(&process_id) {
+            let mut process = process_arc.lock().await;
+            *process = final_process;
+        }
+    }
 
-        // Return a placeholder UUID
-        // TODO: Improve this to track the actual process ID before spawning
-        Uuid::new_v4()
+    /// Handle pipeline execution failure by updating the process state.
+    ///
+    /// # Arguments
+    ///
+    /// * `processes` - The shared process registry
+    /// * `process_id` - The ID of the failed process
+    /// * `error` - The error that caused the failure
+    async fn handle_pipeline_failure(
+        processes: Arc<Mutex<HashMap<Uuid, Arc<Mutex<Process>>>>>,
+        process_id: Uuid,
+        error: anyhow::Error,
+    ) {
+        eprintln!("Pipeline execution failed: {}", error);
+
+        let mut procs = processes.lock().await;
+        if let Some(process_arc) = procs.get_mut(&process_id) {
+            let mut process = process_arc.lock().await;
+            process.status = pk_protocol::process_models::ProcessStatus::Failed;
+            process.logs.push(format!("Error: {}", error));
+        }
     }
 
     /// Pause a running process.
@@ -297,5 +366,53 @@ mod tests {
         let nonexistent_id = Uuid::new_v4();
         let result = state_manager.get_process(nonexistent_id).await;
         assert!(result.is_none());
+    }
+
+    /// RED: Test that start_pipeline returns unique UUIDs and stores processes
+    ///
+    /// This test validates that:
+    /// 1. Each call to start_pipeline returns a different UUID
+    /// 2. The process is stored in the StateManager's internal registry
+    /// 3. Multiple processes can be started and tracked independently
+    #[tokio::test]
+    async fn test_start_pipeline_returns_unique_uuids_and_stores_processes() {
+        let configs = vec![create_test_agent_config("agent1")];
+        let manager = AgentManager::new(configs);
+        let (tx, _rx) = mpsc::channel(100);
+
+        let state_manager = StateManager::new(manager, tx);
+
+        // Create two test pipelines
+        let steps = vec![ProcessStep::Agent("agent1".to_string())];
+        let pipeline1 = create_test_pipeline("pipeline-1", steps.clone());
+        let pipeline2 = create_test_pipeline("pipeline-2", steps);
+
+        // Start first pipeline
+        let process_id_1 = state_manager.start_pipeline(pipeline1).await;
+
+        // Start second pipeline
+        let process_id_2 = state_manager.start_pipeline(pipeline2).await;
+
+        // UUIDs should be different
+        assert_ne!(process_id_1, process_id_2, "Process IDs should be unique");
+
+        // Give the engine time to store the processes
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+
+        // Both processes should be in the registry
+        assert_eq!(
+            state_manager.process_count().await,
+            2,
+            "StateManager should have 2 processes stored"
+        );
+
+        // Should be able to retrieve the processes by ID
+        let proc1 = state_manager.get_process(process_id_1).await;
+        assert!(proc1.is_some(), "Process 1 should be retrievable");
+        assert_eq!(proc1.unwrap().pipeline_name, "pipeline-1");
+
+        let proc2 = state_manager.get_process(process_id_2).await;
+        assert!(proc2.is_some(), "Process 2 should be retrievable");
+        assert_eq!(proc2.unwrap().pipeline_name, "pipeline-2");
     }
 }

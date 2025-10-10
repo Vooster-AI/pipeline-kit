@@ -1,0 +1,4 @@
+# Pipeline Kit Global Configuration
+
+# Enable git integration
+git = true

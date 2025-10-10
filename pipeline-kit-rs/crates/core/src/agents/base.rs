@@ -5,9 +5,73 @@ use std::pin::Pin;
 use thiserror::Error;
 use tokio_stream::Stream;
 
+/// Attachment types that can be included with an instruction.
+#[derive(Debug, Clone)]
+pub enum Attachment {
+    /// Image attachment with path and MIME type.
+    Image { path: String, mime_type: String },
+    /// File attachment with path and content.
+    File { path: String, content: String },
+}
+
+/// Context information passed to agents during execution.
 #[derive(Debug, Clone)]
 pub struct ExecutionContext {
+    /// The user instruction (prompt).
     pub instruction: String,
+
+    /// The project path (working directory).
+    pub project_path: String,
+
+    /// Whether this is the initial prompt (used for tool filtering).
+    pub is_initial_prompt: bool,
+
+    /// Additional context (images, files, etc.).
+    pub attachments: Vec<Attachment>,
+}
+
+impl ExecutionContext {
+    /// Create a new ExecutionContext with the given instruction.
+    ///
+    /// Defaults:
+    /// - project_path: current directory
+    /// - is_initial_prompt: false
+    /// - attachments: empty
+    pub fn new(instruction: String) -> Self {
+        Self {
+            instruction,
+            project_path: std::env::current_dir()
+                .ok()
+                .and_then(|p| p.to_str().map(|s| s.to_string()))
+                .unwrap_or_else(|| ".".to_string()),
+            is_initial_prompt: false,
+            attachments: vec![],
+        }
+    }
+
+    /// Set the project path.
+    pub fn with_project_path(mut self, path: String) -> Self {
+        self.project_path = path;
+        self
+    }
+
+    /// Set whether this is an initial prompt.
+    pub fn with_initial_prompt(mut self, is_initial: bool) -> Self {
+        self.is_initial_prompt = is_initial;
+        self
+    }
+
+    /// Add an attachment.
+    pub fn with_attachment(mut self, attachment: Attachment) -> Self {
+        self.attachments.push(attachment);
+        self
+    }
+
+    /// Add multiple attachments.
+    pub fn with_attachments(mut self, attachments: Vec<Attachment>) -> Self {
+        self.attachments.extend(attachments);
+        self
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -86,9 +150,7 @@ mod tests {
     #[tokio::test]
     async fn test_agent_execute_success() {
         let agent = TestAgent { available: true };
-        let context = ExecutionContext {
-            instruction: "test instruction".to_string(),
-        };
+        let context = ExecutionContext::new("test instruction".to_string());
 
         let mut stream = agent.execute(&context).await.unwrap();
         let mut events = Vec::new();
@@ -107,9 +169,7 @@ mod tests {
     #[tokio::test]
     async fn test_agent_execute_unavailable() {
         let agent = TestAgent { available: false };
-        let context = ExecutionContext {
-            instruction: "test instruction".to_string(),
-        };
+        let context = ExecutionContext::new("test instruction".to_string());
 
         let result = agent.execute(&context).await;
         assert!(result.is_err());
@@ -120,10 +180,26 @@ mod tests {
 
     #[test]
     fn test_execution_context_creation() {
-        let context = ExecutionContext {
-            instruction: "Test instruction".to_string(),
-        };
+        let context = ExecutionContext::new("Test instruction".to_string());
         assert_eq!(context.instruction, "Test instruction");
+        assert!(!context.is_initial_prompt);
+        assert!(context.attachments.is_empty());
+    }
+
+    #[test]
+    fn test_execution_context_builder() {
+        let context = ExecutionContext::new("Test".to_string())
+            .with_project_path("/tmp/test".to_string())
+            .with_initial_prompt(true)
+            .with_attachment(Attachment::Image {
+                path: "/tmp/image.png".to_string(),
+                mime_type: "image/png".to_string(),
+            });
+
+        assert_eq!(context.instruction, "Test");
+        assert_eq!(context.project_path, "/tmp/test");
+        assert!(context.is_initial_prompt);
+        assert_eq!(context.attachments.len(), 1);
     }
 
     #[test]

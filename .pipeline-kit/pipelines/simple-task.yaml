@@ -1,0 +1,9 @@
+name: simple-task
+master:
+  model: claude-sonnet-4.5
+  system-prompt: |
+    You orchestrate a simple single-agent task.
+  process:
+    - developer
+sub-agents:
+  - developer
