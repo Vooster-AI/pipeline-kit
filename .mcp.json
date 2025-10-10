@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "codex-github-fetcher": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "github-fetcher-mcp",
+        "--repoIdentifier",
+        "openai/codex/main"
+      ],
+      "env": {}
+    }
+  }
+}

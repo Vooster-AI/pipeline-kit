@@ -1,0 +1,23 @@
+name: ticket-implement
+
+required-reference-file:
+  - problem
+
+output-file:
+  - output.md
+  - plan.md
+
+master:
+  model: claude-code:sonnet
+  system-prompt: "{problem}을 참고해 문제 시점과 현상을 파악한다. 해당 시점의 사용자가 문제를 겪지않고 필요한 기능들에 원활히 접근할 수 있도록, 사용자 관점에서 편리한 UX 플로우를 고안한 뒤 UI에 반영하기위한 개선계획 보고서를 작성한다."
+  process:
+    1. "ux-researcher agent를 사용해서, 해당 시점의 사용자를 위한 이상적인 UX 플로우를 고안한다. 이를 같은 경로에 {output.md} 파일로 저장한다."
+    2. "ux-critic agent에게 problem과 1의 output을 전달해 냉정히 비판한다. 해당 agent가 전달한 개선안을 충실히 반영해 최종본을 완성하고, {output.md} 파일을 업데이트한다."
+    3. "HUMAN_REVIEW"
+    4. "{output.md}에 포함된 각 기능에 대한 상세한 UI 개선 계획을 ui-designer agent를 사용해 도출한다. 이는 모든 기능에 대해 병렬로 수행한다."
+    4. "모든 기능의 개선계획이 도출됐다면, 이를 모두 취합한 최종 개선계획 보고서를 같은 경로에 {plan.md} 파일로 저장한다."
+
+sub-agents:
+  - ux-researcher
+  - ux-critic
+  - ui-designer
