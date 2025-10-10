@@ -25,6 +25,7 @@ chrono = "0.4"
 tempfile = "3.10"
 which = "6.0"
 async-stream = "0.3.6"
+rust-embed = { version = "8.0", features = ["debug-embed", "interpolate-folder-path"] }
 
 [dev-dependencies]
 tempfile = "3.10"

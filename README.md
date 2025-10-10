@@ -30,7 +30,29 @@ npm install -g pipeline-kit
 npx pipeline-kit
 ```
 
-### First Run
+### Initialize Your Project
+
+The easiest way to get started is with the `init` command:
+
+```bash
+# Initialize .pipeline-kit directory with templates
+pipeline-kit init
+
+# Or use minimal templates (1 agent, 1 pipeline)
+pipeline-kit init --minimal
+
+# Initialize in a specific directory
+pipeline-kit init --path ~/my-project
+```
+
+This will create:
+- `.pipeline-kit/config.toml` - Global configuration
+- `.pipeline-kit/agents/` - Agent definitions (developer, reviewer)
+- `.pipeline-kit/pipelines/` - Pipeline workflows (simple-task, code-review)
+
+### Manual Setup (Alternative)
+
+If you prefer manual setup instead of using `init`:
 
 1. **Create configuration directory**:
 ```bash
@@ -66,7 +88,7 @@ sub-agents:
   - reviewer
 ```
 
-4. **Set up API keys**:
+3. **Set up API keys**:
 ```bash
 # For Claude
 export ANTHROPIC_API_KEY=your_api_key
@@ -78,13 +100,13 @@ export GEMINI_API_KEY=your_api_key
 export CURSOR_API_KEY=your_api_key
 ```
 
-5. **Launch the TUI**:
+4. **Launch the TUI**:
 ```bash
 pipeline-kit
 ```
 
-6. **Start a pipeline**:
-Type `/start code-review` in the command input and press Enter.
+5. **Start a pipeline**:
+Type `/start simple-task` in the command input and press Enter.
 
 ## Configuration
 
@@ -193,17 +215,19 @@ pipeline-kit
 
 ### CLI Mode (Non-Interactive)
 
-Execute pipelines directly from the command line:
+Execute commands directly from the command line:
 
 ```bash
-# Start a pipeline
-pipeline-kit start <pipeline-name>
+# Initialize a new project
+pipeline-kit init
+pipeline-kit init --minimal
+pipeline-kit init --force
 
-# List all pipelines
-pipeline-kit list
+# Start a pipeline (TUI mode)
+pipeline-kit
 
-# Show pipeline status
-pipeline-kit status <process-id>
+# Show help
+pipeline-kit --help
 ```
 
 ### Slash Commands

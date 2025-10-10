@@ -1,0 +1,14 @@
+name: code-review
+master:
+  model: claude-sonnet-4.5
+  system-prompt: |
+    You are the master orchestrator for a code review pipeline.
+    Your job is to coordinate between the developer and reviewer agents
+    to ensure high-quality code is produced.
+  process:
+    - developer
+    - reviewer
+    - HUMAN_REVIEW
+sub-agents:
+  - developer
+  - reviewer
