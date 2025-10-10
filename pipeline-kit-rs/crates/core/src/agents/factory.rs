@@ -5,6 +5,7 @@ use crate::agents::adapters::CodexAdapter;
 use crate::agents::adapters::CursorAdapter;
 use crate::agents::adapters::GeminiAdapter;
 use crate::agents::adapters::MockAgent;
+use crate::agents::adapters::QwenAdapter;
 use crate::agents::agent_type::AgentType;
 use crate::agents::base::Agent;
 use anyhow::Result;
@@ -91,12 +92,12 @@ impl AgentFactory {
                 Ok(Arc::new(adapter))
             }
             AgentType::Qwen => {
-                // TODO: Phase 2 - Implement QwenAdapter
-                eprintln!(
-                    "Warning: QwenAdapter not yet implemented for '{}', using MockAgent",
-                    config.name
-                );
-                Ok(Arc::new(MockAgent::success()))
+                let adapter = QwenAdapter::new(
+                    config.name.clone(),
+                    config.model.clone(),
+                    config.system_prompt.clone(),
+                )?;
+                Ok(Arc::new(adapter))
             }
             AgentType::Mock => {
                 // Support different mock types for testing based on model name
@@ -171,6 +172,18 @@ mod tests {
 
         let agent = agent.unwrap();
         // CodexAdapter check_availability returns false unless `codex` CLI and OPENAI_API_KEY are set
+        // This is expected behavior in test environment
+        let _ = agent.check_availability().await;
+    }
+
+    #[tokio::test]
+    async fn test_factory_create_qwen() {
+        let config = create_test_config("qwen-agent", "qwen-coder");
+        let agent = AgentFactory::create(&config);
+        assert!(agent.is_ok());
+
+        let agent = agent.unwrap();
+        // QwenAdapter check_availability returns false unless `qwen` CLI is installed
         // This is expected behavior in test environment
         let _ = agent.check_availability().await;
     }
