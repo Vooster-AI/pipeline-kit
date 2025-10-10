@@ -85,6 +85,9 @@ async fn test_pipeline_engine_sequential_execution_with_human_review() {
         resume_notifier: std::sync::Arc::new(tokio::sync::Notify::new()),
     };
 
+    // Clone resume_notifier for manual resume in test
+    let resume_notifier = process.resume_notifier.clone();
+
     let handle = tokio::spawn(async move { engine.run(&pipeline, process, events_tx).await });
 
     // Collect events
@@ -94,7 +97,7 @@ async fn test_pipeline_engine_sequential_execution_with_human_review() {
     let timeout_duration = std::time::Duration::from_secs(2);
 
     while let Ok(Some(event)) = tokio::time::timeout(timeout_duration, events_rx.recv()).await {
-        let should_break = matches!(
+        let should_resume = matches!(
             &event,
             Event::ProcessStatusUpdate {
                 status: ProcessStatus::HumanReview,
@@ -103,8 +106,9 @@ async fn test_pipeline_engine_sequential_execution_with_human_review() {
         );
         received_events.push(event);
 
-        // Stop collecting after we receive HumanReview status
-        if should_break {
+        // Resume process when HumanReview is reached (simulate user resume action)
+        if should_resume {
+            resume_notifier.notify_one();
             break;
         }
     }
@@ -157,9 +161,23 @@ async fn test_pipeline_engine_sequential_execution_with_human_review() {
         "Should have log chunks from agent execution"
     );
 
-    // Clean up
+    // Clean up with timeout safety - wait for remaining events after resume
+    let completion_timeout = std::time::Duration::from_secs(5);
+    while let Ok(Some(event)) = tokio::time::timeout(completion_timeout, events_rx.recv()).await {
+        let is_completed = matches!(&event, Event::ProcessCompleted { .. });
+        received_events.push(event);
+        if is_completed {
+            break;
+        }
+    }
+
+    // Ensure pipeline completed successfully with timeout safety
     drop(events_rx);
-    let _ = handle.await;
+    tokio::time::timeout(std::time::Duration::from_secs(5), handle)
+        .await
+        .expect("Pipeline should complete within timeout")
+        .expect("Pipeline task should not panic")
+        .expect("Pipeline execution should succeed");
 }
 
 /// RED: Test that pipeline completes successfully without HUMAN_REVIEW
@@ -228,6 +246,11 @@ async fn test_pipeline_engine_completes_without_human_review() {
     });
     assert!(!has_human_review, "Should not have HumanReview status");
 
+    // Graceful cleanup with timeout safety
     drop(events_rx);
-    let _ = handle.await;
+    tokio::time::timeout(std::time::Duration::from_secs(5), handle)
+        .await
+        .expect("Pipeline should complete within timeout")
+        .expect("Pipeline task should not panic")
+        .expect("Pipeline execution should succeed");
 }
