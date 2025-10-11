@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2025-10-11
+
+### Fixed
+- npm global install failed due to missing runtime deps. Moved `axios` and `tar` to production `dependencies` and lazily loaded them in `scripts/install.js` to avoid ESM import errors in development mode.
+
 ## [0.1.2] - 2025-10-11
 
 ### Added
@@ -96,7 +101,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial spec and agent definitions (832e95e)
 - Updated ticket progress tracking throughout development
 
-[Unreleased]: https://github.com/Vooster-AI/pipeline-kit/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Vooster-AI/pipeline-kit/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Vooster-AI/pipeline-kit/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Vooster-AI/pipeline-kit/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Vooster-AI/pipeline-kit/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Vooster-AI/pipeline-kit/releases/tag/v0.1.0

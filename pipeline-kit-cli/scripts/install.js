@@ -13,8 +13,8 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import axios from 'axios';
-import { extract as tarExtract } from 'tar';
+// Lazily import heavy network/extraction deps to avoid requiring them
+// when not needed (e.g., development mode copying local binaries).
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -88,6 +88,9 @@ export function buildDownloadUrl({ repo, version, platformName }) {
  * @returns {Promise<void>}
  */
 export async function downloadAndExtract({ url, vendorDir, platformName, binaryName, showProgress = true }) {
+  // Dynamic imports so dev installs don't require these deps upfront
+  const axios = (await import('axios')).default;
+  const { extract: tarExtract } = await import('tar');
   const platformDir = path.join(vendorDir, platformName, 'pipeline-kit');
   const binaryPath = path.join(platformDir, binaryName);
 

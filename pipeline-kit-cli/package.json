@@ -1,6 +1,6 @@
 {
   "name": "pipeline-kit",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "AI agent pipeline orchestration CLI",
   "license": "MIT",
   "type": "module",
@@ -9,6 +9,7 @@
   },
   "scripts": {
     "postinstall": "node scripts/install.js",
+    "prepack": "node scripts/clean_vendor.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
@@ -40,14 +41,16 @@
     "orchestration",
     "cli"
   ],
+  "dependencies": {
+    "axios": "^1.6.0",
+    "tar": "^7.0.0"
+  },
   "devDependencies": {
     "@types/node": "^24.7.1",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
-    "axios": "^1.6.0",
     "mock-fs": "^5.2.0",
     "nock": "^13.5.0",
-    "tar": "^7.0.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }
