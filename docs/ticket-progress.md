@@ -205,8 +205,51 @@
 - ✅ 100% 테스트 커버리지 (TypeScript CLI)
 - ✅ 사용자 친화적 디렉터리 구조
 
-### 다음 단계
-- E2E 통합 테스트 작성
-- GitHub Actions CI/CD 설정
-- 첫 릴리즈 배포
-- 사용자 문서 작성
+---
+
+## Phase 9: 코드 품질 향상 및 아키텍처 개선
+
+> **목표**: 중복 코드를 제거하고 아키텍처를 개선하여 유지보수성과 확장성을 높입니다.
+
+### Ticket 9.1: 에이전트 어댑터 리팩토링 - `CliExecutor` 도입
+- [x] RED: Mock CLI 실행 파일 생성 및 `CliExecutor::execute` 테스트 작성
+- [x] GREEN: `CliExecutor` 구현 및 `ClaudeAdapter` 리팩토링
+- [x] REFACTOR: 모든 CLI 어댑터 리팩토링 및 중복 코드 제거
+- [x] **Ticket 9.1 완료**
+
+### Ticket 9.2: 설치 스크립트 재작성 - Node.js 기반으로 전환
+- [x] RED: `install.js` 테스트 작성 (nock 사용, 실제 temp dir 사용)
+- [x] GREEN: `install.js` 구현 및 `package.json` 수정
+- [x] REFACTOR: 진행률 표시 및 오류 처리 개선, 셸 스크립트 삭제
+- [x] **Ticket 9.2 완료**
+
+### Ticket 9.3: TUI 이벤트 핸들러 리팩토링 - 위젯에 책임 위임
+- [x] RED: `CommandComposer::handle_key_event` 테스트 작성
+- [x] GREEN: `EventStatus` 정의 및 위젯 이벤트 핸들러 구현
+- [x] REFACTOR: 이벤트 처리 로직 분리 및 일반화
+- [x] **Ticket 9.3 완료**
+
+---
+
+## 전체 진행 상황
+
+- **Phase 1**: 2/2 티켓 완료 ✅
+- **Phase 2**: 2/2 티켓 완료 ✅
+- **Phase 3**: 1/1 티켓 완료 ✅
+- **Phase 4**: 4/4 티켓 완료 ✅
+- **Phase 5**: 1/1 티켓 완료 ✅
+- **Phase 6**: 2/2 티켓 완료 ✅
+- **Phase 7**: 2/2 티켓 완료 ✅
+- **Phase 8**: 4/4 티켓 완료 ✅
+- **Phase 9**: 3/3 티켓 완료 ✅
+
+**총 진행률**: 21/21 티켓 완료 (100%) 🎉🎉🎉
+
+---
+
+## 다음 단계
+- Phase 9 완료 후:
+  - E2E 통합 테스트 작성
+  - GitHub Actions CI/CD 설정
+  - 첫 릴리즈 배포
+  - 사용자 문서 작성
