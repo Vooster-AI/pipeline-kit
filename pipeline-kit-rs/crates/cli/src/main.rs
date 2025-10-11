@@ -1,7 +1,12 @@
 use clap::{Parser, Subcommand};
 use colored::Colorize;
+use pk_core::config::loader::load_config;
+use pk_core::engine::PipelineEngine;
 use pk_core::init::{generate_pipeline_kit_structure, InitOptions};
+use pk_core::state::process::create_process;
+use pk_protocol::ipc::Event;
 use std::path::PathBuf;
+use tokio::sync::mpsc;
 
 #[derive(Parser)]
 #[command(name = "pipeline-kit")]
@@ -26,6 +31,20 @@ enum Commands {
         /// Target directory (default: current directory)
         #[arg(short, long)]
         path: Option<PathBuf>,
+    },
+
+    /// Run a pipeline by name
+    Run {
+        /// Name of the pipeline to run
+        pipeline: String,
+
+        /// Optional reference file to provide context
+        #[arg(long, value_name = "PATH")]
+        reference_file: Option<PathBuf>,
+
+        /// Run without launching the TUI and print events as JSON Lines
+        #[arg(long)]
+        no_tui: bool,
     },
 }
 
@@ -106,6 +125,72 @@ async fn main() -> color_eyre::Result<()> {
                     eprintln!("{} {}", "Error:".red().bold(), e);
                     std::process::exit(1);
                 }
+            }
+        }
+        Some(Commands::Run {
+            pipeline,
+            reference_file: _reference_file,
+            no_tui,
+        }) => {
+            if !no_tui {
+                // For now, default to launching the TUI when --no-tui is not provided
+                return pk_tui::run_app()
+                    .await
+                    .map_err(|e| color_eyre::eyre::eyre!(e));
+            }
+
+            // Headless mode: load config, run pipeline, and print Events as JSON Lines
+            let root = std::env::current_dir()?;
+            let config = load_config(&root)
+                .await
+                .map_err(|e| color_eyre::eyre::eyre!(format!("Failed to load config: {}", e)))?;
+
+            // Find the requested pipeline
+            let pipeline_def = config
+                .pipelines
+                .iter()
+                .find(|p| p.name == pipeline)
+                .cloned()
+                .ok_or_else(|| {
+                    color_eyre::eyre::eyre!(format!("Pipeline not found: {}", pipeline))
+                })?;
+
+            // Initialize AgentManager with configured agents
+            let manager = pk_core::agents::manager::AgentManager::new(config.agents);
+            let engine = PipelineEngine::new(manager);
+
+            // Create channels for event streaming
+            let (tx, mut rx) = mpsc::channel::<Event>(100);
+
+            // Create initial process
+            let process = create_process(pipeline_def.name.clone());
+
+            // Spawn printer task for JSON Lines output
+            let printer = tokio::spawn(async move {
+                while let Some(event) = rx.recv().await {
+                    match serde_json::to_string(&event) {
+                        Ok(line) => {
+                            println!("{}", line);
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to serialize event: {}", e);
+                        }
+                    }
+                }
+            });
+
+            // Run the pipeline
+            let result = engine.run(&pipeline_def, process, tx).await;
+
+            // Ensure printer task completes
+            let _ = printer.await;
+
+            match result {
+                Ok(_) => Ok(()),
+                Err(e) => Err(color_eyre::eyre::eyre!(format!(
+                    "Pipeline execution failed: {}",
+                    e
+                ))),
             }
         }
     }
@@ -201,6 +286,23 @@ mod tests {
             assert_eq!(path, Some(PathBuf::from("/tmp/test")));
         } else {
             panic!("Expected Init command");
+        }
+    }
+
+    #[test]
+    fn test_cli_parsing_run_no_tui() {
+        let cli = Cli::try_parse_from(["pipeline-kit", "run", "simple-task", "--no-tui"]).unwrap();
+        match cli.command {
+            Some(Commands::Run {
+                pipeline,
+                reference_file,
+                no_tui,
+            }) => {
+                assert_eq!(pipeline, "simple-task");
+                assert!(reference_file.is_none());
+                assert!(no_tui);
+            }
+            _ => panic!("Expected Run command"),
         }
     }
 }

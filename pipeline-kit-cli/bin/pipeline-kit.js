@@ -35,12 +35,18 @@ const vendorRoot = path.join(__dirname, "..", "vendor");
 const binaryName = getBinaryName(platform);
 const binaryPath = getVendorBinaryPath(vendorRoot, platformName, binaryName);
 
-// Development mode fallback: if vendor binary doesn't exist, try local build
-let finalBinaryPath = binaryPath;
-if (!existsSync(binaryPath)) {
-  const cliDir = path.join(__dirname, "..");
-  const devBinaryPath = getDevBinaryPath(cliDir, binaryName);
+// Determine dev binary path
+const cliDir = path.join(__dirname, "..");
+const devBinaryPath = getDevBinaryPath(cliDir, binaryName);
 
+// Allow preferring dev binary via env for tests/development
+const preferDev = process.env.PIPELINE_KIT_PREFER_DEV === "1";
+
+// Resolve final binary path
+let finalBinaryPath = binaryPath;
+if (preferDev && existsSync(devBinaryPath)) {
+  finalBinaryPath = devBinaryPath;
+} else if (!existsSync(binaryPath)) {
   if (existsSync(devBinaryPath)) {
     finalBinaryPath = devBinaryPath;
   } else {
