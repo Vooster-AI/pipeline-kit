@@ -1,0 +1,60 @@
+name: install-e2e
+
+on:
+  pull_request: { branches: [main] }
+  workflow_dispatch: {}
+
+jobs:
+  e2e-install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Prepare dummy release artifact
+        run: |
+          set -euxo pipefail
+          mkdir -p artifacts
+          # Create a dummy executable matching our expected layout
+          mkdir -p pkg/pipeline-kit
+          printf '#!/usr/bin/env bash\necho "Hello from dummy pipeline binary"\n' > pkg/pipeline-kit/pipeline
+          chmod +x pkg/pipeline-kit/pipeline
+          # Package for linux-x64 platform
+          tar -C pkg -czf artifacts/pipeline-kit-linux-x64.tar.gz pipeline-kit
+
+      - name: Serve artifacts locally
+        run: |
+          python3 -m http.server 8000 --directory artifacts &
+          echo $! > server.pid
+      - name: Wait for server
+        run: |
+          for i in $(seq 1 10); do
+            curl -sSf http://127.0.0.1:8000/ && exit 0 || sleep 1;
+          done; exit 1
+
+      - name: Production install using local artifact
+        working-directory: pipeline-kit-cli
+        env:
+          NODE_ENV: production
+          PIPELINE_KIT_DOWNLOAD_BASE: http://127.0.0.1:8000/
+        run: |
+          npm ci
+
+      - name: Verify installed binary path and permissions
+        working-directory: pipeline-kit-cli
+        run: |
+          set -euxo pipefail
+          test -f vendor/linux-x64/pipeline-kit/pipeline
+          test -x vendor/linux-x64/pipeline-kit/pipeline
+
+      - name: Cleanup server
+        if: always()
+        run: |
+          if [ -f server.pid ]; then kill $(cat server.pid) || true; fi
+
