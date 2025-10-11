@@ -6,6 +6,7 @@
 pub mod adapters;
 pub mod agent_type;
 pub mod base;
+pub mod cli_executor;
 pub mod factory;
 pub mod manager;
 

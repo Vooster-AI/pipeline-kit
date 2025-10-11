@@ -4,6 +4,7 @@ use crate::agents::base::Agent;
 use crate::agents::base::AgentError;
 use crate::agents::base::AgentEvent;
 use crate::agents::base::ExecutionContext;
+use crate::agents::cli_executor::CliExecutor;
 use async_trait::async_trait;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -12,8 +13,6 @@ use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::Mutex;
 use tokio::fs;
-use tokio::io::AsyncBufReadExt;
-use tokio::io::BufReader;
 use tokio::process::Command;
 use tokio_stream::Stream;
 use tokio_stream::StreamExt;
@@ -102,70 +101,60 @@ impl Agent for CursorAdapter {
             mapping.get(&project_id).cloned()
         };
 
-        // 3. Build command
-        let mut cmd = Command::new("cursor-agent");
-        cmd.arg("--force");
-        cmd.arg("-p").arg(&context.instruction);
-        cmd.arg("--output-format").arg("stream-json");
-        cmd.arg("-m").arg(&self.model);
+        // 3. Build command arguments
+        let mut args = vec![
+            "--force".to_string(),
+            "-p".to_string(),
+            context.instruction.clone(),
+            "--output-format".to_string(),
+            "stream-json".to_string(),
+            "-m".to_string(),
+            self.model.clone(),
+        ];
 
         // Session resumption
         if let Some(sid) = &session_id {
-            cmd.arg("--resume").arg(sid);
+            args.push("--resume".to_string());
+            args.push(sid.clone());
         }
 
         // API key from environment
         if let Ok(api_key) = std::env::var("CURSOR_API_KEY") {
-            cmd.arg("--api-key").arg(&api_key);
+            args.push("--api-key".to_string());
+            args.push(api_key);
         }
 
-        // Set working directory
-        cmd.current_dir(&context.project_path);
-        cmd.stdout(Stdio::piped());
-        cmd.stderr(Stdio::piped());
+        // 4. Execute CLI using CliExecutor
+        let json_stream = CliExecutor::execute(
+            "cursor-agent".to_string(),
+            args,
+            context.project_path.clone(),
+        );
 
-        // 4. Spawn process
-        let mut child = cmd.spawn().map_err(|e| {
-            AgentError::ExecutionError(format!("Failed to spawn cursor-agent: {}", e))
-        })?;
-
-        let stdout = child
-            .stdout
-            .take()
-            .ok_or_else(|| AgentError::ExecutionError("Failed to capture stdout".to_string()))?;
-
-        // 5. Create NDJSON stream
-        let reader = BufReader::new(stdout);
-        let lines = reader.lines();
-        let lines_stream = tokio_stream::wrappers::LinesStream::new(lines);
-
-        // 6. Parse and convert events
+        // 5. Convert JSON stream to AgentEvents
         let session_mapping = self.session_mapping.clone();
         let project_id_clone = project_id.clone();
 
-        let events_stream = lines_stream
-            .then(move |line_result| {
+        let events_stream = json_stream
+            .then(move |json_result| {
                 let session_mapping = session_mapping.clone();
                 let project_id = project_id_clone.clone();
 
                 async move {
-                    match line_result {
-                        Ok(line) => {
-                            if line.trim().is_empty() {
-                                return None;
-                            }
-
-                            match serde_json::from_str::<CursorEvent>(&line) {
+                    match json_result {
+                        Ok(json_value) => {
+                            // Parse as CursorEvent
+                            match serde_json::from_value::<CursorEvent>(json_value.clone()) {
                                 Ok(event) => {
                                     convert_cursor_event(event, session_mapping, project_id).await
                                 }
                                 Err(e) => Some(Err(AgentError::StreamParseError(format!(
-                                    "Failed to parse NDJSON: {} (line: {})",
-                                    e, line
+                                    "Failed to parse CursorEvent: {} (json: {})",
+                                    e, json_value
                                 )))),
                             }
                         }
-                        Err(e) => Some(Err(AgentError::StreamParseError(e.to_string()))),
+                        Err(e) => Some(Err(e)),
                     }
                 }
             })

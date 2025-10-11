@@ -4,6 +4,7 @@ use crate::agents::base::Agent;
 use crate::agents::base::AgentError;
 use crate::agents::base::AgentEvent;
 use crate::agents::base::ExecutionContext;
+use crate::agents::cli_executor::CliExecutor;
 use async_trait::async_trait;
 use serde::Deserialize;
 use serde::Serialize;
@@ -12,8 +13,6 @@ use std::pin::Pin;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::Mutex;
-use tokio::io::AsyncBufReadExt;
-use tokio::io::BufReader;
 use tokio::process::Command;
 use tokio_stream::Stream;
 use tokio_stream::StreamExt;
@@ -121,81 +120,71 @@ impl Agent for ClaudeAdapter {
             mapping.get(&project_id).cloned()
         };
 
-        // 3. Build command
-        let mut cmd = Command::new("claude");
-        cmd.arg("--settings").arg(&settings_path);
-        cmd.arg("--model").arg(&self.model);
-        cmd.arg("--permission-mode").arg("bypassPermissions");
-        cmd.arg("--continue-conversation");
+        // 3. Build command arguments
+        let mut args = vec![
+            "--settings".to_string(),
+            settings_path,
+            "--model".to_string(),
+            self.model.clone(),
+            "--permission-mode".to_string(),
+            "bypassPermissions".to_string(),
+            "--continue-conversation".to_string(),
+        ];
 
         // Tool filtering based on is_initial_prompt
         if context.is_initial_prompt {
             // Initial prompt: exclude TodoWrite
-            cmd.arg("--allowed-tools")
-                .arg("Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS,WebFetch,WebSearch");
-            cmd.arg("--disallowed-tools").arg("TodoWrite");
+            args.push("--allowed-tools".to_string());
+            args.push("Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS,WebFetch,WebSearch".to_string());
+            args.push("--disallowed-tools".to_string());
+            args.push("TodoWrite".to_string());
         } else {
             // Subsequent prompts: include TodoWrite
-            cmd.arg("--allowed-tools")
-                .arg("Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS,WebFetch,WebSearch,TodoWrite");
+            args.push("--allowed-tools".to_string());
+            args.push(
+                "Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS,WebFetch,WebSearch,TodoWrite"
+                    .to_string(),
+            );
         }
 
         // Session resumption
         if let Some(sid) = &session_id {
-            cmd.arg("--resume-session-id").arg(sid);
+            args.push("--resume-session-id".to_string());
+            args.push(sid.clone());
         }
 
         // Prompt
-        cmd.arg("--prompt").arg(&context.instruction);
+        args.push("--prompt".to_string());
+        args.push(context.instruction.clone());
 
-        // Set working directory
-        cmd.current_dir(&context.project_path);
-        cmd.stdout(Stdio::piped());
-        cmd.stderr(Stdio::piped());
+        // 4. Execute CLI using CliExecutor
+        let json_stream =
+            CliExecutor::execute("claude".to_string(), args, context.project_path.clone());
 
-        // 4. Spawn the process
-        let mut child = cmd.spawn().map_err(|e| {
-            AgentError::ExecutionError(format!("Failed to spawn claude CLI: {}", e))
-        })?;
-
-        let stdout = child
-            .stdout
-            .take()
-            .ok_or_else(|| AgentError::ExecutionError("Failed to capture stdout".to_string()))?;
-
-        // 5. Create stream of lines
-        let reader = BufReader::new(stdout);
-        let lines = reader.lines();
-        let lines_stream = tokio_stream::wrappers::LinesStream::new(lines);
-
-        // 6. Parse JSON Lines and convert to AgentEvents
+        // 5. Convert JSON stream to AgentEvents
         let session_mapping = self.session_mapping.clone();
         let project_id_clone = project_id.clone();
 
-        let events_stream = lines_stream
-            .then(move |line_result| {
+        let events_stream = json_stream
+            .then(move |json_result| {
                 let session_mapping = session_mapping.clone();
                 let project_id = project_id_clone.clone();
 
                 async move {
-                    match line_result {
-                        Ok(line) => {
-                            if line.trim().is_empty() {
-                                return None;
-                            }
-
-                            // Parse JSON
-                            match serde_json::from_str::<ClaudeMessage>(&line) {
+                    match json_result {
+                        Ok(json_value) => {
+                            // Parse as ClaudeMessage
+                            match serde_json::from_value::<ClaudeMessage>(json_value.clone()) {
                                 Ok(msg) => {
                                     convert_claude_message(msg, session_mapping, project_id).await
                                 }
                                 Err(e) => Some(Err(AgentError::StreamParseError(format!(
-                                    "Failed to parse JSON: {} (line: {})",
-                                    e, line
+                                    "Failed to parse ClaudeMessage: {} (json: {})",
+                                    e, json_value
                                 )))),
                             }
                         }
-                        Err(e) => Some(Err(AgentError::StreamParseError(e.to_string()))),
+                        Err(e) => Some(Err(e)),
                     }
                 }
             })
