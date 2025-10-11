@@ -1,0 +1,40 @@
+name: agent-integration
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  e2e-agents:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install external CLIs (best-effort)
+        run: |
+          set -euxo pipefail
+          python3 -m pip install --upgrade pip
+          # Try popular names; ignore failures to allow test to signal missing CLI.
+          python3 -m pip install claude || true
+          python3 -m pip install claude-cli || true
+
+      - name: Run agent integration tests (ignored)
+        working-directory: pipeline-kit-rs
+        env:
+          CI: 'true'
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          cargo test --workspace --features e2e-cli-tests -- --ignored --nocapture
+
