@@ -16,6 +16,7 @@ path = "src/lib.rs"
 
 [dependencies]
 pk-protocol = { path = "../protocol" }
+pk-core = { path = "../core" }
 
 # TUI
 ratatui = "0.29"
