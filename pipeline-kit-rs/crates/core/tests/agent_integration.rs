@@ -19,7 +19,10 @@ async fn claude_cli_is_available() {
 
     let status = Command::new("claude").arg("-h").status().await;
     assert!(status.is_ok(), "failed to spawn claude CLI");
-    assert!(status.unwrap().success(), "claude CLI not available or returned error");
+    assert!(
+        status.unwrap().success(),
+        "claude CLI not available or returned error"
+    );
 }
 
 #[tokio::test]
@@ -32,6 +35,8 @@ async fn cursor_agent_cli_is_available() {
 
     let status = Command::new("cursor-agent").arg("-h").status().await;
     assert!(status.is_ok(), "failed to spawn cursor-agent CLI");
-    assert!(status.unwrap().success(), "cursor-agent CLI not available or returned error");
+    assert!(
+        status.unwrap().success(),
+        "cursor-agent CLI not available or returned error"
+    );
 }
-
