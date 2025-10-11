@@ -7,11 +7,13 @@
 //! the `Op` and `Event` protocol defined in `pk-protocol`.
 
 pub mod app;
+pub mod event;
 pub mod event_handler;
 pub mod tui;
 pub mod widgets;
 
 pub use app::App;
+pub use event::EventStatus;
 pub use tui::Tui;
 
 use anyhow::Result;

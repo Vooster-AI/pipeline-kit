@@ -23,6 +23,7 @@ use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_stream::StreamExt;
 
+use crate::event::EventStatus;
 use crate::event_handler;
 use crate::tui::Tui;
 use crate::tui::TuiEvent;
@@ -111,6 +112,11 @@ impl App {
     }
 
     /// Handle keyboard events.
+    ///
+    /// This method implements the chain of responsibility pattern:
+    /// 1. First, try to delegate the event to the CommandComposer widget
+    /// 2. If the widget consumed the event, we're done
+    /// 3. If not, handle global events (quit, process navigation, command submission)
     fn handle_key_event(&mut self, key_event: KeyEvent) {
         use crossterm::event::KeyCode;
         use crossterm::event::KeyEventKind;
@@ -121,56 +127,49 @@ impl App {
             return;
         }
 
-        // Handle command composer interactions
+        // First, try to delegate to CommandComposer
+        let status = self.command_composer.handle_key_event(key_event);
+
+        // If the event was consumed by the widget, clear error on char input and return
+        if status == EventStatus::Consumed {
+            // Clear error message when user types (only for char input)
+            if matches!(key_event.code, KeyCode::Char(_)) {
+                self.error_message = None;
+            }
+            // Also clear error on Esc
+            if matches!(key_event.code, KeyCode::Esc) {
+                self.error_message = None;
+            }
+            return;
+        }
+
+        // Event was not consumed by widget, handle global events
         match key_event.code {
+            // Global quit keys
             KeyCode::Char('q') if self.command_composer.input().is_empty() => {
                 self.should_exit = true;
             }
             KeyCode::Char('c') if key_event.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.should_exit = true;
             }
-            KeyCode::Up if self.command_composer.should_show_popup() => {
-                self.command_composer.move_selection_up();
-            }
-            KeyCode::Down if self.command_composer.should_show_popup() => {
-                self.command_composer.move_selection_down();
-            }
+
+            // Process navigation (only when popup is not shown)
             KeyCode::Up => {
-                // Navigate processes
                 if self.selected_index > 0 {
                     self.selected_index -= 1;
                 }
             }
             KeyCode::Down => {
-                // Navigate processes
                 if self.selected_index + 1 < self.processes.len() {
                     self.selected_index += 1;
                 }
             }
-            KeyCode::Tab if self.command_composer.should_show_popup() => {
-                self.command_composer.complete_with_selection();
-            }
+
+            // Command submission
             KeyCode::Enter => {
                 self.handle_command_submit();
             }
-            KeyCode::Char(c) => {
-                self.command_composer.insert_char(c);
-                // Clear error when user starts typing
-                self.error_message = None;
-            }
-            KeyCode::Backspace => {
-                self.command_composer.delete_char();
-            }
-            KeyCode::Left => {
-                self.command_composer.move_cursor_left();
-            }
-            KeyCode::Right => {
-                self.command_composer.move_cursor_right();
-            }
-            KeyCode::Esc => {
-                self.command_composer.clear();
-                self.error_message = None;
-            }
+
             _ => {}
         }
     }

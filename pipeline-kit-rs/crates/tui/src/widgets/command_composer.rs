@@ -3,6 +3,8 @@
 //! This widget provides a text input field for entering commands, with
 //! autocomplete suggestions when the user types a slash command.
 
+use crate::event::EventStatus;
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 use pk_protocol::Op;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -227,6 +229,103 @@ impl CommandComposer {
         }
     }
 
+    /// Handle a key event and return whether it was consumed.
+    ///
+    /// This method implements the widget's event handling logic, allowing the
+    /// CommandComposer to handle its own keyboard input. It returns `EventStatus::Consumed`
+    /// if the event was handled, or `EventStatus::NotConsumed` if it should be passed
+    /// to the next handler in the chain of responsibility.
+    ///
+    /// Events that are NOT consumed (passed to parent handler):
+    /// - Enter key (command submission handled by App)
+    /// - 'q' when input is empty (global quit)
+    /// - Ctrl+C (global quit)
+    /// - Up/Down when popup is not shown (process navigation)
+    pub fn handle_key_event(&mut self, key_event: KeyEvent) -> EventStatus {
+        // Ignore key release events
+        if key_event.kind != KeyEventKind::Press {
+            return EventStatus::Consumed;
+        }
+
+        match key_event.code {
+            KeyCode::Up | KeyCode::Down => self.handle_vertical_navigation(key_event.code),
+            KeyCode::Tab => self.handle_tab(),
+            KeyCode::Char(c) => self.handle_char_input(c),
+            KeyCode::Backspace => self.handle_backspace(),
+            KeyCode::Left | KeyCode::Right => self.handle_cursor_move(key_event.code),
+            KeyCode::Esc => self.handle_escape(),
+            KeyCode::Enter => EventStatus::NotConsumed,
+            _ => EventStatus::NotConsumed,
+        }
+    }
+
+    /// Handle vertical navigation (Up/Down keys).
+    ///
+    /// Only consumes the event if the autocomplete popup is shown.
+    /// Otherwise, returns NotConsumed to allow App to handle process navigation.
+    fn handle_vertical_navigation(&mut self, code: KeyCode) -> EventStatus {
+        if !self.should_show_popup() {
+            // Not consumed - let App handle process navigation
+            return EventStatus::NotConsumed;
+        }
+
+        match code {
+            KeyCode::Up => self.move_selection_up(),
+            KeyCode::Down => self.move_selection_down(),
+            _ => unreachable!(),
+        }
+
+        EventStatus::Consumed
+    }
+
+    /// Handle Tab key for autocomplete.
+    ///
+    /// Only consumes the event if the autocomplete popup is shown.
+    fn handle_tab(&mut self) -> EventStatus {
+        if !self.should_show_popup() {
+            return EventStatus::NotConsumed;
+        }
+
+        self.complete_with_selection();
+        EventStatus::Consumed
+    }
+
+    /// Handle character input.
+    ///
+    /// Special case: 'q' when input is empty is not consumed (global quit).
+    fn handle_char_input(&mut self, c: char) -> EventStatus {
+        // Don't consume 'q' when input is empty (it's a global quit)
+        if c == 'q' && self.input.is_empty() {
+            return EventStatus::NotConsumed;
+        }
+
+        self.insert_char(c);
+        EventStatus::Consumed
+    }
+
+    /// Handle backspace key.
+    fn handle_backspace(&mut self) -> EventStatus {
+        self.delete_char();
+        EventStatus::Consumed
+    }
+
+    /// Handle cursor movement (Left/Right keys).
+    fn handle_cursor_move(&mut self, code: KeyCode) -> EventStatus {
+        match code {
+            KeyCode::Left => self.move_cursor_left(),
+            KeyCode::Right => self.move_cursor_right(),
+            _ => unreachable!(),
+        }
+
+        EventStatus::Consumed
+    }
+
+    /// Handle Escape key.
+    fn handle_escape(&mut self) -> EventStatus {
+        self.clear();
+        EventStatus::Consumed
+    }
+
     /// Parse the current input and generate an Op if valid.
     ///
     /// Returns Ok(Some(Op)) if a valid command was parsed,
@@ -283,6 +382,8 @@ impl CommandComposer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::event::EventStatus;
+    use crossterm::event::{KeyCode, KeyEvent};
 
     #[test]
     fn test_new_composer_is_empty() {
@@ -609,5 +710,178 @@ mod tests {
         let result = composer.parse_command();
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Commands must start with"));
+    }
+
+    // ========================================================================
+    // RED TESTS: Event Handling Delegation (Ticket 9.3)
+    // ========================================================================
+
+    #[test]
+    fn test_handle_key_event_cursor_left() {
+        // RED: This test will fail because handle_key_event doesn't exist yet
+        let mut composer = CommandComposer::new();
+        composer.insert_char('/');
+        composer.insert_char('s');
+        composer.insert_char('t');
+        assert_eq!(composer.cursor_pos, 3);
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Left));
+        assert_eq!(status, EventStatus::Consumed);
+        assert_eq!(composer.cursor_pos, 2);
+    }
+
+    #[test]
+    fn test_handle_key_event_cursor_right() {
+        // RED: This test will fail because handle_key_event doesn't exist yet
+        let mut composer = CommandComposer::new();
+        composer.insert_char('/');
+        composer.insert_char('s');
+        composer.move_cursor_left();
+        assert_eq!(composer.cursor_pos, 1);
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Right));
+        assert_eq!(status, EventStatus::Consumed);
+        assert_eq!(composer.cursor_pos, 2);
+    }
+
+    #[test]
+    fn test_handle_key_event_char_input() {
+        // RED: This test will fail because handle_key_event doesn't exist yet
+        let mut composer = CommandComposer::new();
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Char('/')));
+        assert_eq!(status, EventStatus::Consumed);
+        assert_eq!(composer.input(), "/");
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Char('s')));
+        assert_eq!(status, EventStatus::Consumed);
+        assert_eq!(composer.input(), "/s");
+    }
+
+    #[test]
+    fn test_handle_key_event_backspace() {
+        // RED: This test will fail because handle_key_event doesn't exist yet
+        let mut composer = CommandComposer::new();
+        composer.insert_char('/');
+        composer.insert_char('s');
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Backspace));
+        assert_eq!(status, EventStatus::Consumed);
+        assert_eq!(composer.input(), "/");
+    }
+
+    #[test]
+    fn test_handle_key_event_up_with_popup() {
+        // RED: This test will fail because handle_key_event doesn't exist yet
+        let mut composer = CommandComposer::new();
+        composer.insert_char('/');
+        assert!(composer.should_show_popup());
+        assert_eq!(composer.selected_index, 0);
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Down));
+        assert_eq!(status, EventStatus::Consumed);
+        assert_eq!(composer.selected_index, 1);
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Up));
+        assert_eq!(status, EventStatus::Consumed);
+        assert_eq!(composer.selected_index, 0);
+    }
+
+    #[test]
+    fn test_handle_key_event_down_with_popup() {
+        // RED: This test will fail because handle_key_event doesn't exist yet
+        let mut composer = CommandComposer::new();
+        composer.insert_char('/');
+        assert!(composer.should_show_popup());
+        assert_eq!(composer.selected_index, 0);
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Down));
+        assert_eq!(status, EventStatus::Consumed);
+        assert_eq!(composer.selected_index, 1);
+    }
+
+    #[test]
+    fn test_handle_key_event_tab_completes_command() {
+        // RED: This test will fail because handle_key_event doesn't exist yet
+        let mut composer = CommandComposer::new();
+        composer.insert_char('/');
+        composer.insert_char('s');
+        composer.insert_char('t');
+        assert!(composer.should_show_popup());
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Tab));
+        assert_eq!(status, EventStatus::Consumed);
+        assert_eq!(composer.input(), "/start ");
+        assert!(!composer.should_show_popup());
+    }
+
+    #[test]
+    fn test_handle_key_event_esc_clears_input() {
+        // RED: This test will fail because handle_key_event doesn't exist yet
+        let mut composer = CommandComposer::new();
+        composer.insert_char('/');
+        composer.insert_char('s');
+        composer.insert_char('t');
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Esc));
+        assert_eq!(status, EventStatus::Consumed);
+        assert_eq!(composer.input(), "");
+    }
+
+    #[test]
+    fn test_handle_key_event_enter_not_consumed() {
+        // RED: Enter should NOT be consumed by CommandComposer - it's handled by App
+        let mut composer = CommandComposer::new();
+        composer.insert_char('/');
+        composer.insert_char('l');
+        composer.insert_char('i');
+        composer.insert_char('s');
+        composer.insert_char('t');
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Enter));
+        assert_eq!(status, EventStatus::NotConsumed);
+        // Input should remain unchanged
+        assert_eq!(composer.input(), "/list");
+    }
+
+    #[test]
+    fn test_handle_key_event_quit_keys_not_consumed() {
+        // When input is empty, 'q' should NOT be consumed (it's a global quit)
+        let mut composer = CommandComposer::new();
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Char('q')));
+        assert_eq!(status, EventStatus::NotConsumed);
+        // Input should remain empty
+        assert_eq!(composer.input(), "");
+    }
+
+    #[test]
+    fn test_handle_key_event_q_consumed_with_input() {
+        // But if there's already input, 'q' should be treated as a regular character
+        let mut composer = CommandComposer::new();
+        composer.insert_char('/');
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Char('q')));
+        assert_eq!(status, EventStatus::Consumed);
+        assert_eq!(composer.input(), "/q");
+    }
+
+    #[test]
+    fn test_handle_key_event_up_down_without_popup_not_consumed() {
+        // RED: When popup is not shown, Up/Down should NOT be consumed
+        // (they're for process navigation in App)
+        let mut composer = CommandComposer::new();
+        composer.insert_char('h');
+        composer.insert_char('e');
+        composer.insert_char('l');
+        composer.insert_char('l');
+        composer.insert_char('o');
+        assert!(!composer.should_show_popup());
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Up));
+        assert_eq!(status, EventStatus::NotConsumed);
+
+        let status = composer.handle_key_event(KeyEvent::from(KeyCode::Down));
+        assert_eq!(status, EventStatus::NotConsumed);
     }
 }
