@@ -264,7 +264,17 @@ export async function install(options = {}) {
     const repo = process.env.PIPELINE_KIT_REPO || 'Vooster-AI/pipeline-kit';
     const version = process.env.PIPELINE_KIT_VERSION || 'latest';
 
-    const url = buildDownloadUrl({ repo, version, platformName });
+    // Allow overriding download URL for CI/local testing
+    let url = process.env.PIPELINE_KIT_DOWNLOAD_URL;
+    const base = process.env.PIPELINE_KIT_DOWNLOAD_BASE;
+    if (!url) {
+      if (base) {
+        const baseTrimmed = base.endsWith('/') ? base : base + '/';
+        url = `${baseTrimmed}pipeline-kit-${platformName}.tar.gz`;
+      } else {
+        url = buildDownloadUrl({ repo, version, platformName });
+      }
+    }
 
     await downloadAndExtract({
       url,
