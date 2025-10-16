@@ -251,10 +251,18 @@ export async function copyLocalBinary({ sourcePath, vendorDir, platformName, bin
  */
 export async function install(options = {}) {
   // Determine installation mode
-  const mode = options.mode || (process.env.NODE_ENV === 'production' ? 'production' : 'development');
+  // Default to production if:
+  // 1. NODE_ENV=production is set, OR
+  // 2. The parent directory doesn't contain pipeline-kit-rs (installed from npm)
+  const cliRoot = options.cliRoot || path.resolve(__dirname, '..');
+  const rustProjectPath = path.join(cliRoot, '..', 'pipeline-kit-rs');
+  const isLocalDevelopment = fs.existsSync(rustProjectPath) && fs.existsSync(path.join(rustProjectPath, 'Cargo.toml'));
+
+  const mode = options.mode ||
+    (process.env.NODE_ENV === 'production' ? 'production' :
+     (!isLocalDevelopment ? 'production' : 'development'));
 
   // Determine paths
-  const cliRoot = options.cliRoot || path.resolve(__dirname, '..');
   const vendorDir = path.join(cliRoot, 'vendor');
 
   // Detect platform
@@ -279,13 +287,21 @@ export async function install(options = {}) {
       }
     }
 
-    await downloadAndExtract({
-      url,
-      vendorDir,
-      platformName,
-      binaryName,
-      showProgress: !options.mode // Only show progress in real execution, not tests
-    });
+    try {
+      await downloadAndExtract({
+        url,
+        vendorDir,
+        platformName,
+        binaryName,
+        showProgress: !options.mode // Only show progress in real execution, not tests
+      });
+    } catch (error) {
+      console.error('\nError during production installation:', error.message);
+      console.error('\nThe CLI will not work until the binary is installed.');
+      console.error('Please report this issue at: https://github.com/Vooster-AI/pipeline-kit/issues\n');
+      // In production mode, fail the installation
+      throw error;
+    }
   } else {
     // Development mode: copy from local Rust build
     const rustBuildDir = path.join(cliRoot, '..', 'pipeline-kit-rs', 'target', 'release');
