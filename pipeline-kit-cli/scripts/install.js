@@ -91,8 +91,8 @@ export async function downloadAndExtract({ url, vendorDir, platformName, binaryN
   // Dynamic imports so dev installs don't require these deps upfront
   const axios = (await import('axios')).default;
   const { extract: tarExtract } = await import('tar');
-  const platformDir = path.join(vendorDir, platformName, 'pipeline-kit');
-  const binaryPath = path.join(platformDir, binaryName);
+  const platformVendorDir = path.join(vendorDir, platformName);
+  const binaryPath = path.join(platformVendorDir, 'pipeline-kit', binaryName);
 
   console.log('Production mode: Downloading Pipeline Kit binary from GitHub Releases...');
   console.log(`  URL: ${url}`);
@@ -145,13 +145,15 @@ export async function downloadAndExtract({ url, vendorDir, platformName, binaryN
 
     console.log('  Extracting archive...');
 
-    // Create platform directory
-    fs.mkdirSync(platformDir, { recursive: true });
+    // Create platform vendor directory (tar will create pipeline-kit/ subdirectory)
+    fs.mkdirSync(platformVendorDir, { recursive: true });
 
-    // Extract tar.gz to platform directory
+    // Extract tar.gz to platform vendor directory
+    // Archive contains pipeline-kit/pipeline, which will be extracted to:
+    // vendor/<platform>/pipeline-kit/pipeline
     await tarExtract({
       file: tempFile,
-      cwd: platformDir
+      cwd: platformVendorDir
     });
 
     // Verify binary exists
