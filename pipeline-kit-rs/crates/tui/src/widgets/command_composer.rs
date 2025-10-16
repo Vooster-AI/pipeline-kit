@@ -207,8 +207,8 @@ impl CommandComposer {
         // Show popup if:
         // 1. Input starts with '/' and doesn't end with space (normal command mode)
         // 2. Input is "/start " followed by optional pipeline name (pipeline selection mode)
-        self.show_popup =
-            self.input.starts_with('/') && (!self.input.ends_with(' ') || self.input.starts_with("/start "));
+        self.show_popup = self.input.starts_with('/')
+            && (!self.input.ends_with(' ') || self.input.starts_with("/start "));
 
         // Reset selection if needed
         let suggestions = self.suggestions();

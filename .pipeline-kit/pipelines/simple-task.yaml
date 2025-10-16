@@ -2,7 +2,8 @@ name: simple-task
 master:
   model: claude-sonnet-4.5
   system-prompt: |
-    You orchestrate a simple single-agent task.
+    You are the master orchestrator for a simple task execution.
+    Guide the developer agent to complete the given task efficiently.
   process:
     - developer
 sub-agents:

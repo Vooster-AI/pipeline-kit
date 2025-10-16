@@ -1,4 +1,8 @@
 # Pipeline Kit Global Configuration
+# Documentation: https://github.com/Vooster-AI/pipeline-kit
 
-# Enable git integration
-git = true
+# Enable git integration (auto-commit after pipeline completion)
+git = false
+
+# Default timeout for agent execution (seconds)
+# timeout = 300
