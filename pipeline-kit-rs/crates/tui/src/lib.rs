@@ -109,8 +109,9 @@ pub async fn run_app() -> Result<()> {
         }
     });
 
-    // Create and run the app
-    let mut app = App::new(ui_op_tx, ui_event_rx);
+    // Create and run the app with pipeline names
+    let pipeline_names: Vec<String> = config.pipelines.iter().map(|p| p.name.clone()).collect();
+    let mut app = App::with_pipelines(ui_op_tx, ui_event_rx, pipeline_names);
     let result = app.run(&mut tui).await;
 
     // Restore terminal before returning

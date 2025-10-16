@@ -39,6 +39,8 @@ pub struct CommandComposer {
     show_popup: bool,
     /// Selected index in the autocomplete list
     selected_index: usize,
+    /// Available pipeline names for autocomplete
+    pipeline_names: Vec<String>,
 }
 
 impl Default for CommandComposer {
@@ -55,7 +57,24 @@ impl CommandComposer {
             cursor_pos: 0,
             show_popup: false,
             selected_index: 0,
+            pipeline_names: Vec::new(),
         }
+    }
+
+    /// Create a new command composer with pipeline names.
+    pub fn with_pipelines(pipeline_names: Vec<String>) -> Self {
+        Self {
+            input: String::new(),
+            cursor_pos: 0,
+            show_popup: false,
+            selected_index: 0,
+            pipeline_names,
+        }
+    }
+
+    /// Update the available pipeline names.
+    pub fn set_pipelines(&mut self, pipeline_names: Vec<String>) {
+        self.pipeline_names = pipeline_names;
     }
 
     /// Get the current input text.
@@ -69,29 +88,47 @@ impl CommandComposer {
     }
 
     /// Get filtered command suggestions based on current input.
-    pub fn suggestions(&self) -> Vec<(&'static str, &'static str)> {
+    pub fn suggestions(&self) -> Vec<(String, String)> {
         if !self.input.starts_with('/') {
             return Vec::new();
         }
 
-        let filter = self.input.trim();
-        if filter == "/" {
-            // Show all commands
-            return COMMANDS.to_vec();
+        // Check if we're typing a pipeline name after "/start "
+        // This takes precedence over command matching
+        // Use original input (not trimmed) to preserve trailing space
+        if self.input.starts_with("/start ") {
+            let pipeline_filter = &self.input["/start ".len()..];
+            return self
+                .pipeline_names
+                .iter()
+                .filter(|name| name.starts_with(pipeline_filter))
+                .map(|name| (name.clone(), format!("Start pipeline: {}", name)))
+                .collect();
         }
 
-        // Simple prefix matching for now
+        // For other commands, use trimmed input for matching
+        let filter = self.input.trim();
+
+        if filter == "/" {
+            // Show all commands
+            return COMMANDS
+                .iter()
+                .map(|(cmd, desc)| (cmd.to_string(), desc.to_string()))
+                .collect();
+        }
+
+        // Simple prefix matching for commands
         COMMANDS
             .iter()
             .filter(|(cmd, _)| cmd.starts_with(filter))
-            .copied()
+            .map(|(cmd, desc)| (cmd.to_string(), desc.to_string()))
             .collect()
     }
 
     /// Get the currently selected suggestion.
-    pub fn selected_suggestion(&self) -> Option<(&'static str, &'static str)> {
+    pub fn selected_suggestion(&self) -> Option<(String, String)> {
         let suggestions = self.suggestions();
-        suggestions.get(self.selected_index).copied()
+        suggestions.get(self.selected_index).cloned()
     }
 
     /// Insert a character at the cursor position.
@@ -149,11 +186,17 @@ impl CommandComposer {
 
     /// Complete with the currently selected suggestion (Tab key).
     pub fn complete_with_selection(&mut self) {
-        if let Some((cmd, _)) = self.selected_suggestion() {
-            // Extract just the command name (without arguments placeholder)
-            let cmd_name = cmd.split_whitespace().next().unwrap_or(cmd);
-            self.input = format!("{} ", cmd_name);
-            self.cursor_pos = self.input.len();
+        if let Some((suggestion, _)) = self.selected_suggestion() {
+            // If we're completing a pipeline name after "/start ", just append the name
+            if self.input.trim().starts_with("/start ") {
+                self.input = format!("/start {}", suggestion);
+                self.cursor_pos = self.input.len();
+            } else {
+                // Extract just the command name (without arguments placeholder)
+                let cmd_name = suggestion.split_whitespace().next().unwrap_or(&suggestion);
+                self.input = format!("{} ", cmd_name);
+                self.cursor_pos = self.input.len();
+            }
             self.show_popup = false;
             self.selected_index = 0;
         }
@@ -161,7 +204,11 @@ impl CommandComposer {
 
     /// Update the popup state based on current input.
     fn update_popup_state(&mut self) {
-        self.show_popup = self.input.starts_with('/') && !self.input.ends_with(' ');
+        // Show popup if:
+        // 1. Input starts with '/' and doesn't end with space (normal command mode)
+        // 2. Input is "/start " followed by optional pipeline name (pipeline selection mode)
+        self.show_popup =
+            self.input.starts_with('/') && (!self.input.ends_with(' ') || self.input.starts_with("/start "));
 
         // Reset selection if needed
         let suggestions = self.suggestions();
@@ -531,17 +578,18 @@ mod tests {
     fn test_popup_hides_after_space() {
         let mut composer = CommandComposer::new();
         composer.insert_char('/');
-        composer.insert_char('s');
-        composer.insert_char('t');
+        composer.insert_char('p');
         composer.insert_char('a');
-        composer.insert_char('r');
-        composer.insert_char('t');
+        composer.insert_char('u');
+        composer.insert_char('s');
+        composer.insert_char('e');
 
         assert!(composer.should_show_popup());
 
         composer.insert_char(' ');
 
         // Popup should hide after typing space (entering arguments)
+        // Note: /start is an exception - it shows pipelines after space
         assert!(!composer.should_show_popup());
     }
 
@@ -883,5 +931,122 @@ mod tests {
 
         let status = composer.handle_key_event(KeyEvent::from(KeyCode::Down));
         assert_eq!(status, EventStatus::NotConsumed);
+    }
+
+    // ========================================================================
+    // Pipeline Autocomplete Tests
+    // ========================================================================
+
+    #[test]
+    fn test_pipeline_autocomplete_shows_pipelines_after_start_command() {
+        let pipelines = vec![
+            "simple-task".to_string(),
+            "code-review".to_string(),
+            "deployment".to_string(),
+        ];
+        let mut composer = CommandComposer::with_pipelines(pipelines);
+
+        // Type "/start "
+        for c in "/start ".chars() {
+            composer.insert_char(c);
+        }
+
+        assert!(
+            composer.should_show_popup(),
+            "Popup should show after '/start '"
+        );
+
+        let suggestions = composer.suggestions();
+        assert_eq!(suggestions.len(), 3, "Should show all 3 pipelines");
+        assert_eq!(suggestions[0].0, "simple-task");
+        assert_eq!(suggestions[1].0, "code-review");
+        assert_eq!(suggestions[2].0, "deployment");
+    }
+
+    #[test]
+    fn test_pipeline_autocomplete_filters_by_prefix() {
+        let pipelines = vec![
+            "simple-task".to_string(),
+            "code-review".to_string(),
+            "code-format".to_string(),
+        ];
+        let mut composer = CommandComposer::with_pipelines(pipelines);
+
+        // Type "/start co"
+        for c in "/start co".chars() {
+            composer.insert_char(c);
+        }
+
+        let suggestions = composer.suggestions();
+        assert_eq!(
+            suggestions.len(),
+            2,
+            "Should show 2 pipelines starting with 'co'"
+        );
+        assert_eq!(suggestions[0].0, "code-review");
+        assert_eq!(suggestions[1].0, "code-format");
+    }
+
+    #[test]
+    fn test_pipeline_autocomplete_tab_completion() {
+        let pipelines = vec!["simple-task".to_string(), "code-review".to_string()];
+        let mut composer = CommandComposer::with_pipelines(pipelines);
+
+        // Type "/start sim"
+        for c in "/start sim".chars() {
+            composer.insert_char(c);
+        }
+
+        assert!(composer.should_show_popup());
+        let suggestions = composer.suggestions();
+        assert_eq!(suggestions.len(), 1);
+        assert_eq!(suggestions[0].0, "simple-task");
+
+        // Press Tab to complete
+        composer.complete_with_selection();
+
+        assert_eq!(composer.input(), "/start simple-task");
+        assert!(!composer.should_show_popup());
+    }
+
+    #[test]
+    fn test_pipeline_autocomplete_empty_list() {
+        let composer = CommandComposer::with_pipelines(vec![]);
+
+        let mut composer = composer;
+        // Type "/start "
+        for c in "/start ".chars() {
+            composer.insert_char(c);
+        }
+
+        let suggestions = composer.suggestions();
+        assert_eq!(
+            suggestions.len(),
+            0,
+            "Should show no pipelines when list is empty"
+        );
+    }
+
+    #[test]
+    fn test_set_pipelines_updates_suggestions() {
+        let mut composer = CommandComposer::new();
+
+        // Initially no pipelines
+        for c in "/start ".chars() {
+            composer.insert_char(c);
+        }
+        assert_eq!(composer.suggestions().len(), 0);
+
+        // Clear and set pipelines
+        composer.clear();
+        composer.set_pipelines(vec!["new-pipeline".to_string()]);
+
+        for c in "/start ".chars() {
+            composer.insert_char(c);
+        }
+
+        let suggestions = composer.suggestions();
+        assert_eq!(suggestions.len(), 1);
+        assert_eq!(suggestions[0].0, "new-pipeline");
     }
 }

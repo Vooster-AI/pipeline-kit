@@ -64,6 +64,23 @@ impl App {
         }
     }
 
+    /// Create a new App with communication channels and pipeline names.
+    pub fn with_pipelines(
+        op_tx: UnboundedSender<Op>,
+        event_rx: UnboundedReceiver<Event>,
+        pipeline_names: Vec<String>,
+    ) -> Self {
+        Self {
+            processes: Vec::new(),
+            selected_index: 0,
+            command_composer: CommandComposer::with_pipelines(pipeline_names),
+            op_tx,
+            event_rx,
+            should_exit: false,
+            error_message: None,
+        }
+    }
+
     /// Main event loop.
     ///
     /// Uses `tokio::select!` to handle keyboard input and core events concurrently.
